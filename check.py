@@ -10,6 +10,8 @@ from pyppeteer import launch
 import nest_asyncio
 
 nest_asyncio.apply()
+
+
 # ФИКС МЕДЛЕЕЕЫЕ ЗАПРОСЫ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def get_check(bank, d):
@@ -24,14 +26,14 @@ def get_check(bank, d):
                'RECEIVER_NAME': 'Скам Скамыч Ф.',
                'RECEIVER_NUMBER': '+7 (993) 532-49-05',
            } | d
-    with open(bank + '/1.html', 'r', encoding='utf-8') as file:
+    with open(os.path.join(os.getcwd(), bank, '1.html'), 'r', encoding='utf-8') as file:
         html_content = file.read()
     for key, value in data.items():
         html_content = html_content.replace(key, str(value))
     html_content = html_content.replace('$URL', 'http://127.0.0.1:5000/' + bank)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(html_to_pdf(html_content))
-    return open('check.pdf', 'rb').read()
+    return open(os.path.join(os.getcwd(), 'check.pdf'), 'rb').read()
 
 
 async def html_to_pdf(html_content):
@@ -60,7 +62,7 @@ async def html_to_pdf(html_content):
 
     await page.pdf({
         'title': 'чек',
-        'path': 'check.pdf',
+        'path': os.path.join(os.getcwd(), 'check.pdf'),
         'width': dimensions['width'],
         'height': dimensions['height'],
         'printBackground': True,
