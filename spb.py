@@ -2,9 +2,7 @@ import json
 import time
 from mitmproxy import http
 from base import Base
-from check import get_check
 from tools import format_response, async_to_sync
-from io import BytesIO
 
 class Spb(Base):
     def get_accounts(self):

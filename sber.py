@@ -1,7 +1,5 @@
 import json
 from mitmproxy import http
-
-from check import get_check
 from tools import format_response
 from base import Base
 
