@@ -14,6 +14,8 @@ engines = {
     "tinkoff": create_engine('sqlite:///tinkoff.db'),
     "sber": create_engine('sqlite:///sber.db'),
 }
+for eng in engines.values():
+    Base.metadata.create_all(eng)
 
 Session = sessionmaker()
 sessions = {bank: Session(bind=engine) for bank, engine in engines.items()}
