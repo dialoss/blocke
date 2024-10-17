@@ -399,14 +399,14 @@ class Sber(Base):
 
         if 'online.sberbank.ru:8543/transfer/enter/v1/workflow?cmd=START&name=enterFlow' in url or \
                 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=START&name=sendFlow' in url:
-            r = json.loads(flow.response.data.content)
+            r = json.loads(flow.response.content)
             balance = self.api.get_card_balance(1)
             self.name = r["body"]["output"]["screens"][0]["widgets"][0]["fields"][0]["title"]
             self.phone = r["body"]["output"]["screens"][0]["widgets"][0]["fields"][0]["value"]
             r["body"]["output"]["references"]["resourceList"]["items"][0]["properties"]["balance"] = balance
             flow.response = format_response(r)
         if 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=EVENT' in url:
-            r = json.loads(flow.response.data.content)
+            r = json.loads(flow.response.content)
             balance = self.api.get_card_balance(1)
 
             if r.get('body'):

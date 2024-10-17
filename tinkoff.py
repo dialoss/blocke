@@ -972,7 +972,7 @@ class Tinkoff(Base):
             if isinstance(l, list):
                 if l[0]['key'] == 'operations':
                     ops = list(map(transform, self.api.get_history()))
-                    r = json.loads(flow.response.data.content)
+                    r = json.loads(flow.response.content)
                     r['payload']['operations']['payload'] += ops
                     flow.response = format_response(r)
 
