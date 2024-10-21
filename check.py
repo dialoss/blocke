@@ -1,6 +1,9 @@
 import asyncio
 import os
 import time
+from datetime import datetime
+
+from db import Settings, engines, sessions
 
 PYPPETEER_CHROMIUM_REVISION = '1263111'
 os.environ['PYPPETEER_CHROMIUM_REVISION'] = PYPPETEER_CHROMIUM_REVISION
@@ -13,17 +16,19 @@ nest_asyncio.apply()
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 # ФИКС МЕДЛЕЕЕЫЕ ЗАПРОСЫ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def get_check(bank, d):
+    settings = sessions[bank].query(Settings).first()
     data = {
                'DOCUMENT': '4252228616',
                'SENDER_CARD': '2314',
                'RECEIVER_CARD': '2511',
                'CODE': '212251',
                'AMOUNT': '1234.13',
-               'TIME': '14.10.2024 13:38',
-               'SENDER_NAME': 'Алексей Андреевич Ф.',
+               'TIME': datetime.now().strftime('%d.%m.%Y %H:%M'),
+               'SENDER_NAME': settings.fio,
                'RECEIVER_NAME': 'Скам Скамыч Ф.',
                'RECEIVER_NUMBER': '+7 (993) 532-49-05',
            } | d

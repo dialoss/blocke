@@ -11,31 +11,39 @@ class Operation(Base):
     __tablename__ = 'operations'
 
     id = Column(Integer, primary_key=True)
-    type = Column(String)
-    title = Column(String)
-    description = Column(String)
-    amount = Column(Float)
-    currency = Column(String)
-    image_url = Column(String)
-    card_number = Column(String)
+    type = Column(String, nullable=True)
+    method = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    amount = Column(Float, nullable=True)
+    currency = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    number = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    receiver_number = Column(String, nullable=True)
+    receiver_card = Column(String, nullable=True)
+    receiver_name = Column(String, nullable=True)
+    receiver_bank = Column(String, nullable=True)
 
 
 class Card(Base):
     __tablename__ = 'cards'
 
     id = Column(Integer, primary_key=True)
-    card_number = Column(String)
-    balance = Column(Float)
+    number = Column(String, nullable=True)
+    chet = Column(String, nullable=True)
+    balance = Column(Float, nullable=True)
 
 
 class Settings(Base):
     __tablename__ = 'settings'
 
     id = Column(Integer, primary_key=True)
-    transfer = Column(Float)
-    spending = Column(Float)
-    enemy = Column(String)
+    transfer = Column(Float, nullable=True)
+    spending = Column(Float, nullable=True)
+    enemy = Column(String, nullable=True)
+    fio = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
 
 
 class Database:
@@ -77,14 +85,26 @@ class Database:
 
     def get_card(self, id):
         if len(self.session.query(Card).all()) == 0:
-            self.session.add(Card(id=1, card_number='220025489471242', balance=34512341.342))
+            self.session.add(Card(id=1, number='220025489471242', balance=34512341.342))
             self.session.commit()
         card = self.session.query(Card).filter(Card.id == id).first()
         return card
 
     def get_card_balance(self, id: int) -> Optional[float]:
         if len(self.session.query(Card).all()) == 0:
-            self.session.add(Card(id=1, card_number='220025489471242', balance=34512341.342))
+            self.session.add(Card(id=1, number='220025489471242', balance=34512341.342))
             self.session.commit()
         card = self.session.query(Card).filter(Card.id == id).first()
         return card.balance if card else 0
+
+
+engines = {
+    "spb": create_engine('sqlite:///spb.db'),
+    "tinkoff": create_engine('sqlite:///tinkoff.db'),
+    "sber": create_engine('sqlite:///sber.db'),
+}
+for eng in engines.values():
+    Base.metadata.create_all(eng)
+
+Session = sessionmaker()
+sessions = {bank: Session(bind=engine) for bank, engine in engines.items()}

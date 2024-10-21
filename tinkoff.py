@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from datetime import datetime
 from mitmproxy import http
@@ -263,7 +264,7 @@ class Tinkoff(Base):
                                 {
                                     "id": "179761560",
                                     "name": "Дебетовая карта",
-                                    "value": self.api.get_card(1)['card_number'],
+                                    "value": self.api.get_card(1)['number'],
                                     "primary": True,
                                     "canBeRemoved": False,
                                     "hasWrongPins": False,
@@ -965,8 +966,9 @@ class Tinkoff(Base):
         }
 
     def response(self, flow: http.HTTPFlow):
+
         url = flow.request.pretty_url
-        if url.startswith('https://api.tinkoff.ru/v1/grouped_requests'):
+        if url.startswith('https://api.t-bank-app.ru/v1/grouped_requests'):
             form = dict(flow.request._get_urlencoded_form())
             l = json.loads(form.get('requestsData'))
             if isinstance(l, list):
@@ -978,14 +980,38 @@ class Tinkoff(Base):
 
     def request(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
-        if url.startswith('https://api.tinkoff.ru/v1/grouped_requests'):
+        if url.startswith('https://mobile-bank.cdn-tinkoff.ru/configs/failure_config.json'):
+            flow.response = format_response([
+                {
+                    "id": "1530263",
+                    "platform": "all",
+                    "info": "Сбой ФНС\\Самозанятость 32303",
+                    "type": "normal",
+                    "userSegmentation": False,
+                    "affectedApps": "mobile",
+                    "updateTime": 600,
+                    "reloadConfigs": False,
+                    "reloadRemoteToggles": False,
+                    "clearRequestsCache": False,
+                    "startDate": 1728894000,
+                    "endDate": 1728900062,
+                    "textFail": "Сбой на стороне налоговой, могут быть проблемы в работе раздела",
+                    "tagsTextFail": {
+                        "selfemployment": "Сбой на стороне налоговой, могут быть проблемы в работе раздела"
+                    },
+                    "targetApps": []
+                }
+            ])
+        # if re.findall(r'509', flow.request.text):
+        #     flow.request.headers["newheader"] = "gavno228"
+        if url.startswith('https://api.t-bank-app.ru/v1/grouped_requests'):
             form = dict(flow.request._get_urlencoded_form())
             l = json.loads(form.get('requestsData'))
             if isinstance(l, list):
                 if len(l) == 2 and l[0]['key'] == 'accounts':
                     flow.response = format_response(self.get_accounts())
 
-        if url.startswith('https://api.tinkoff.ru/v1/payment_commission'):
+        if url.startswith('https://api.t-bank-app.ru/v1/payment_commission'):
             form = dict(flow.request._get_urlencoded_form())
             pay = json.loads(form.get('payParameters'))
             self.amount = float(pay['moneyAmount'])
@@ -998,7 +1024,7 @@ class Tinkoff(Base):
                 "value": {"currency": {"code": 643, "name": "RUB", "strCode": "643"}, "value": 0.0000},
                 "maxAmount": 1000000.0, "unfinishedFlag": False, "externalFees": [],
                 "description": "Комиссия не взимается банком"}, "trackingId": "LC8ZHDA95"})
-        if url.startswith('https://api.tinkoff.ru/v1/pay?'):
+        if url.startswith('https://api.t-bank-app.ru/v1/pay?'):
             time.sleep(2)
             flow.response = format_response({"resultCode": "OK", "payload": {"paymentId": "18702009596",
                                                                              "commissionInfo": {
@@ -1026,14 +1052,14 @@ class Tinkoff(Base):
                                        "description": "Monthly salary",
                                        "amount": self.amount,
                                        "currency": "RUB",
-                                       "card_number": "1234567890123456"})
-        if url.startswith('https://api.tinkoff.ru/v1/payment_receipt_pdf'):
+                                       "number": "1234567890123456"})
+        if url.startswith('https://api.t-bank-app.ru/v1/payment_receipt_pdf'):
             flow.response = http.Response.make(200, self.api.get_check(
                 {'RECEIVER_NUMBER': self.phone, 'RECEIVER_NAME': self.name, 'AMOUNT': self.amount,
                  'TIME': datetime.now().strftime('%d.%m.%Y %H:%M')}),
                                                {'content-type': 'application/pdf'})
 
-        if url.startswith('https://api.tinkoff.ru/v1/operations_piechart'):
+        if url.startswith('https://api.t-bank-app.ru/v1/operations_piechart'):
             settings = self.api.get_settings()
             transfer = settings['transfer']
             total_spend = settings['spending']

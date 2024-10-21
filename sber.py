@@ -1,14 +1,74 @@
 import json
+import random
+from datetime import datetime
+
 from mitmproxy import http
 from tools import format_response
 from base import Base
 
 
+def format_cards(cards):
+    return [{"id": 3900034455303300 + i, "name": "МИР Сберкарта Моментальная", "order": 1, "hidden": True,
+             "description": "МИР Сберкарта Моментальная", "cardHolder": "SBERKARTA MOMENTUM",
+             "number": ('9999999999999999' + card['number'])[-16:], "selfEmployed": False, "isMain": True,
+             "type": "debit",
+             "availableLimit": {"amount": str(card['balance']), "currency": {"code": "RUB", "name": "руб."}},
+             "availableTotalLimit": {"amount": str(card['balance']), "currency": {"code": "RUB", "name": "руб."}},
+             "state": "active", "cardAccount": ('9999999999999999' + card['chet'])[-20:], "arrested": False,
+             "showArrestDetail": True,
+             "isc": False, "isAllowedPriorityP2P": True, "tokenExists": False, "tokenList": [],
+             "expireDate": "05/2034", "statusWay4": "+-active", "rarelyUsed": False, "imageCode": "wp",
+             "sbercardLevel": 2, "needRqDeliveryStatus": False, "needRqDeliveryStatusReissue": False,
+             "needRqChangeOfficeWidget": False, "realExpireDate": "05/2034", "issueDate": "15.10.2024",
+             "multiCurrencyAccounts": [], "issueType": 0, "isCTA": True, "cardCode": "111857",
+             "iconCode": "wp",
+             "iconCodeAddSign": "2",
+             "optionPermissions": {"allowedMetalPhysicalCreditCardReissue": False,
+                                   "changeCreditLimit": False,
+                                   "setPINAvailable": True, "setPayrollAvailable": False,
+                                   "activationAvailableUfs": False, "block": True,
+                                   "isAnimatedCardDesignAvailable": False, "isMainCardCompWallet": False,
+                                   "additionalCardAvailable": False, "isAllowedPriorityP2P": True,
+                                   "cardClientLimitsMainScreen": True, "pay": True, "createMoneyBox": True,
+                                   "needLimitForPensionProduct": False, "closeCreditCard": False,
+                                   "allowedChangeTariffPPRBCreditCard": False,
+                                   "allowedMetalPhysicalCreditCardOrder": False,
+                                   "activateCreditCard": False,
+                                   "isSocialPackageAvailable": True, "closeCardAvailable": False,
+                                   "changeGracePeriod": False, "replenish": True,
+                                   "changeCardTariffAvailable": False, "changePaymentDate": False,
+                                   "isSbercardTariffV3": True, "activationAvailable": False,
+                                   "increaseLimitCreditCard": False, "setCardDesign": True,
+                                   "setPriorityCard": True,
+                                   "isMultiCurrency": False, "needRqChangeOfficeWidget": False,
+                                   "ownBusiness": False, "sberPayTokenizable": True, "getCashInAtm": True,
+                                   "getCvcCode": False, "activateCreditCardMigration": False,
+                                   "autopay": False,
+                                   "samsungPayTokenizable": True, "googlePayTokenizable": True,
+                                   "needRqDeliveryStatus": False, "getInsurance": False,
+                                   "multiCurrencyCardAvailable": False, "needRqLifeCycleStatusV2": False,
+                                   "physicalCardOrderAvailable": False, "reissueCreditCard": False,
+                                   "isCreditCardAccountToClose": False, "displayCardDesign": False,
+                                   "transfer2Organization": True, "transfer2Person": True,
+                                   "applePayTokenizable": True, "cashWithdrawalTransferFree": False,
+                                   "changeCardProduct": False, "decreaseRateForCategoryOperations": False,
+                                   "transfer2Self": True},
+             "creditOwnSum": {"amount": str(card['balance']), "currency": {"code": "RUB", "name": "руб."}},
+             "isReissuedCard": False, "location": ["header"]} for i, card in enumerate(cards)]
+
+
+def format_cards_small(cards):
+    return [{"id": 3900008975103250 + i, "name": "Платёжный счёт", "order": 1, "hidden": False,
+             "description": "Платёжный счёт", "number": ('9999999999999999' + card['chet'])[-20:],
+             "balance": {"amount": card['balance'], "currency": {"code": "RUB", "name": "руб."}}, "state": "active",
+             "arrested": False, "location": ["wallet", "header"], "grantor": "Алексей Андреевич Ф",
+             "documents": []} for i, card in enumerate(cards)]
+
+
 class Sber(Base):
     def get_accounts(self):
-        balance = self.api.get_card_balance(1)
         return {"success": True, "body": {
-            "personalization": {"segments": {"name": "0"}, "isNewClient": True, "isSberPrimeOnMainScreen": False},
+            "personalization": {"segments": {"name": "0"}, "isNewClient": False, "isSberPrimeOnMainScreen": False},
             "generalPermissions": {"CreditCardAvailable": True, "VirtualCardMP": False, "DebitCardAppMP": True},
             "sectionDisplaySettings": [{"sections": [
                 {"order": 1, "title": "Кошелёк", "hidden": False, "enabled": False, "expanded": True, "locked": True,
@@ -27,8 +87,7 @@ class Sber(Base):
                      "locked": False, "expandable": False, "keepState": False, "code": "sberThanks", "default": False},
                     {"order": 6, "title": "Продукты опенбанкинга", "hidden": False, "enabled": False, "expanded": False,
                      "locked": False, "expandable": False, "keepState": False, "code": "obpctaccounts",
-                     "default": False}],
-                 "code": "newWallet", "default": True},
+                     "default": False}], "code": "newWallet", "default": True},
                 {"order": 2, "title": "Переводы на Сбер", "hidden": False, "enabled": False, "expanded": True,
                  "locked": False, "expandable": False, "keepState": False, "hidingSectionDisable": False,
                  "sections": [{"order": 1, "title": "Переводы на Сбер", "code": "payments"}], "code": "payments",
@@ -40,32 +99,27 @@ class Sber(Base):
                 {"order": 4, "title": "Вклады и счета", "hidden": False, "enabled": False, "expanded": False,
                  "locked": False, "expandable": True, "keepState": False, "sections": [
                     {"order": 1, "title": "Счета", "hidden": False, "enabled": False, "expanded": False,
-                     "locked": False,
-                     "expandable": False, "keepState": False, "code": "accounts", "default": False},
+                     "locked": False, "expandable": False, "keepState": False, "code": "accounts", "default": False},
                     {"order": 2, "title": "Металлы", "hidden": False, "enabled": False, "expanded": False,
-                     "locked": False,
-                     "expandable": False, "keepState": False, "code": "ima", "default": False}], "disabled": True,
-                 "code": "accountsAndIma", "default": False},
+                     "locked": False, "expandable": False, "keepState": False, "code": "ima", "default": False}],
+                 "disabled": True, "code": "accountsAndIma", "default": False},
                 {"order": 5, "title": "Кредиты", "hidden": False, "enabled": False, "expanded": False, "locked": False,
                  "expandable": True, "keepState": False,
-                 "sections": [{"order": 1, "title": "Кредиты", "code": "loans"}],
-                 "code": "loans", "default": False},
+                 "sections": [{"order": 1, "title": "Кредиты", "code": "loans"}], "code": "loans", "default": False},
                 {"order": 6, "title": "Цели", "hidden": False, "enabled": False, "expanded": False, "locked": False,
                  "expandable": True, "keepState": False, "sections": [
                     {"order": 1, "title": "Цели", "hidden": False, "enabled": False, "expanded": False, "locked": False,
                      "expandable": False, "keepState": False, "code": "goals", "default": False}], "disabled": True,
                  "code": "goalsAndEnvelopes", "default": False},
                 {"order": 7, "title": "Инвестиции", "hidden": False, "enabled": False, "expanded": False,
-                 "locked": False,
-                 "expandable": True, "keepState": False, "sections": [
+                 "locked": False, "expandable": True, "keepState": False, "sections": [
                     {"order": 1, "title": "Инвестиции", "hidden": False, "enabled": False, "expanded": False,
                      "locked": False, "expandable": False, "keepState": False, "code": "investments",
-                     "default": False}],
-                 "disabled": True, "code": "investmentsAndPensions", "default": False},
+                     "default": False}], "disabled": True, "code": "investmentsAndPensions", "default": False},
                 {"order": 8, "title": "Пенсии", "hidden": False, "enabled": False, "expanded": False, "locked": False,
                  "expandable": True, "keepState": False,
-                 "sections": [{"order": 1, "title": "Пенсии", "code": "pensions"}],
-                 "disabled": True, "code": "pensions", "default": False},
+                 "sections": [{"order": 1, "title": "Пенсии", "code": "pensions"}], "disabled": True,
+                 "code": "pensions", "default": False},
                 {"order": 9, "title": "Валюты и металлы", "hidden": False, "enabled": False, "expanded": False,
                  "locked": False, "expandable": True, "keepState": False,
                  "sections": [{"order": 1, "title": "Валюты и металлы", "code": "rates"}], "code": "rates",
@@ -75,122 +129,25 @@ class Sber(Base):
                  "sections": [{"order": 1, "title": "Сервисы", "code": "services"}], "code": "services",
                  "default": False},
                 {"order": 11, "title": "Рекомендуем", "hidden": False, "enabled": False, "expanded": False,
-                 "locked": True,
-                 "expandable": False, "keepState": False,
+                 "locked": True, "expandable": False, "keepState": False,
                  "sections": [{"order": 1, "title": "Рекомендуем", "code": "recommended"}], "code": "recommended",
                  "default": False},
                 {"order": 12, "title": "Курсы валют", "hidden": False, "enabled": False, "expanded": True,
-                 "locked": True,
-                 "expandable": False, "keepState": False, "sections": [
+                 "locked": True, "expandable": False, "keepState": False, "sections": [
                     {"order": 1, "title": "Клиентские курсы валют", "hidden": False, "enabled": False,
-                     "expanded": False,
-                     "locked": False, "expandable": False, "keepState": False, "code": "currencyRates",
-                     "default": False},
+                     "expanded": False, "locked": False, "expandable": False, "keepState": False,
+                     "code": "currencyRates", "default": False},
                     {"order": 2, "title": "Курсы валют ЦБ", "hidden": False, "enabled": False, "expanded": False,
                      "locked": False, "expandable": False, "keepState": False, "code": "currencyCbRates",
-                     "default": False}], "code": "currencies", "default": True},
+                     "default": False}], "disabled": True, "code": "currencies", "default": True},
                 {"order": 13, "title": "Сбер и партнёры", "hidden": False, "enabled": False, "expanded": True,
                  "locked": True, "expandable": False, "keepState": False,
                  "sections": [{"order": 1, "title": "Сбер и партнёры", "code": "geomap"}], "code": "geomap",
                  "default": False}], "code": "body"}], "sections": {"technicalSection": {"sectionProductData": {
-                "cardsInWallet": {"data":
-                    [
-                        {"id": 3900034455303300, "name": "МИР Сберкарта Моментальная", "order": 1, "hidden": True,
-                         "description": "МИР Сберкарта Моментальная", "cardHolder": "SBERKARTA MOMENTUM",
-                         "number": "2202 20** **** 9340", "selfEmployed": False, "isMain": True, "type": "debit",
-                         "availableLimit": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "availableTotalLimit": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "state": "active", "cardAccount": "40817810268784023703", "arrested": False,
-                         "showArrestDetail": True,
-                         "isc": False, "isAllowedPriorityP2P": True, "tokenExists": False, "tokenList": [],
-                         "expireDate": "05/2034", "statusWay4": "+-active", "rarelyUsed": False, "imageCode": "wp",
-                         "sbercardLevel": 2, "needRqDeliveryStatus": False, "needRqDeliveryStatusReissue": False,
-                         "needRqChangeOfficeWidget": False, "realExpireDate": "05/2034", "issueDate": "15.10.2024",
-                         "multiCurrencyAccounts": [], "issueType": 0, "isCTA": True, "cardCode": "111857",
-                         "iconCode": "wp",
-                         "iconCodeAddSign": "2",
-                         "optionPermissions": {"allowedMetalPhysicalCreditCardReissue": False,
-                                               "changeCreditLimit": False,
-                                               "setPINAvailable": True, "setPayrollAvailable": False,
-                                               "activationAvailableUfs": False, "block": True,
-                                               "isAnimatedCardDesignAvailable": False, "isMainCardCompWallet": False,
-                                               "additionalCardAvailable": False, "isAllowedPriorityP2P": True,
-                                               "cardClientLimitsMainScreen": True, "pay": True, "createMoneyBox": True,
-                                               "needLimitForPensionProduct": False, "closeCreditCard": False,
-                                               "allowedChangeTariffPPRBCreditCard": False,
-                                               "allowedMetalPhysicalCreditCardOrder": False,
-                                               "activateCreditCard": False,
-                                               "isSocialPackageAvailable": True, "closeCardAvailable": False,
-                                               "changeGracePeriod": False, "replenish": True,
-                                               "changeCardTariffAvailable": False, "changePaymentDate": False,
-                                               "isSbercardTariffV3": True, "activationAvailable": False,
-                                               "increaseLimitCreditCard": False, "setCardDesign": True,
-                                               "setPriorityCard": True,
-                                               "isMultiCurrency": False, "needRqChangeOfficeWidget": False,
-                                               "ownBusiness": False, "sberPayTokenizable": True, "getCashInAtm": True,
-                                               "getCvcCode": False, "activateCreditCardMigration": False,
-                                               "autopay": False,
-                                               "samsungPayTokenizable": True, "googlePayTokenizable": True,
-                                               "needRqDeliveryStatus": False, "getInsurance": False,
-                                               "multiCurrencyCardAvailable": False, "needRqLifeCycleStatusV2": False,
-                                               "physicalCardOrderAvailable": False, "reissueCreditCard": False,
-                                               "isCreditCardAccountToClose": False, "displayCardDesign": False,
-                                               "transfer2Organization": True, "transfer2Person": True,
-                                               "applePayTokenizable": True, "cashWithdrawalTransferFree": False,
-                                               "changeCardProduct": False, "decreaseRateForCategoryOperations": False,
-                                               "transfer2Self": True},
-                         "creditOwnSum": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "isReissuedCard": False, "location": ["header"]},
-                        {"id": 3900034455303311, "name": "МИР Сберкарта Моментальная", "order": 1, "hidden": True,
-                         "description": "МИР Сберкарта Моментальная", "cardHolder": "SBERKARTA MOMENTUM",
-                         "number": "2202 20** **** 5432", "selfEmployed": False, "isMain": True, "type": "debit",
-                         "availableLimit": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "availableTotalLimit": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "state": "active", "cardAccount": "40817810268784023706", "arrested": False,
-                         "showArrestDetail": True,
-                         "isc": False, "isAllowedPriorityP2P": True, "tokenExists": False, "tokenList": [],
-                         "expireDate": "05/2034", "statusWay4": "+-active", "rarelyUsed": False, "imageCode": "wp",
-                         "sbercardLevel": 2, "needRqDeliveryStatus": False, "needRqDeliveryStatusReissue": False,
-                         "needRqChangeOfficeWidget": False, "realExpireDate": "05/2034", "issueDate": "15.10.2024",
-                         "multiCurrencyAccounts": [], "issueType": 0, "isCTA": True, "cardCode": "111857",
-                         "iconCode": "wp",
-                         "iconCodeAddSign": "2",
-                         "optionPermissions": {"allowedMetalPhysicalCreditCardReissue": False,
-                                               "changeCreditLimit": False,
-                                               "setPINAvailable": True, "setPayrollAvailable": False,
-                                               "activationAvailableUfs": False, "block": True,
-                                               "isAnimatedCardDesignAvailable": False, "isMainCardCompWallet": False,
-                                               "additionalCardAvailable": False, "isAllowedPriorityP2P": True,
-                                               "cardClientLimitsMainScreen": True, "pay": True, "createMoneyBox": True,
-                                               "needLimitForPensionProduct": False, "closeCreditCard": False,
-                                               "allowedChangeTariffPPRBCreditCard": False,
-                                               "allowedMetalPhysicalCreditCardOrder": False,
-                                               "activateCreditCard": False,
-                                               "isSocialPackageAvailable": True, "closeCardAvailable": False,
-                                               "changeGracePeriod": False, "replenish": True,
-                                               "changeCardTariffAvailable": False, "changePaymentDate": False,
-                                               "isSbercardTariffV3": True, "activationAvailable": False,
-                                               "increaseLimitCreditCard": False, "setCardDesign": True,
-                                               "setPriorityCard": True,
-                                               "isMultiCurrency": False, "needRqChangeOfficeWidget": False,
-                                               "ownBusiness": False, "sberPayTokenizable": True, "getCashInAtm": True,
-                                               "getCvcCode": False, "activateCreditCardMigration": False,
-                                               "autopay": False,
-                                               "samsungPayTokenizable": True, "googlePayTokenizable": True,
-                                               "needRqDeliveryStatus": False, "getInsurance": False,
-                                               "multiCurrencyCardAvailable": False, "needRqLifeCycleStatusV2": False,
-                                               "physicalCardOrderAvailable": False, "reissueCreditCard": False,
-                                               "isCreditCardAccountToClose": False, "displayCardDesign": False,
-                                               "transfer2Organization": True, "transfer2Person": True,
-                                               "applePayTokenizable": True, "cashWithdrawalTransferFree": False,
-                                               "changeCardProduct": False, "decreaseRateForCategoryOperations": False,
-                                               "transfer2Self": True},
-                         "creditOwnSum": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}},
-                         "isReissuedCard": False, "location": ["header"]}
-                    ],
-                    "url": "/main-screen/rest/v2/mobile/section/data/cardsInWallet", "state": "SUCCESS"},
-                "currencyCbRates": {"data": [{"baseCurrency": "USD", "lotSize": 1, "value": 96.1021},
-                                             {"baseCurrency": "EUR", "lotSize": 1, "value": 105.4854}],
+                "cardsInWallet": {"data": format_cards(self.api.get_cards()),
+                                  "url": "/main-screen/rest/v2/mobile/section/data/cardsInWallet", "state": "SUCCESS"},
+                "currencyCbRates": {"data": [{"baseCurrency": "USD", "lotSize": 1, "value": 96.4172},
+                                             {"baseCurrency": "EUR", "lotSize": 1, "value": 104.8565}],
                                     "url": "/main-screen/rest/v2/mobile/section/data/currencyCbRates",
                                     "state": "SUCCESS"},
                 "loans": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/loans",
@@ -206,209 +163,181 @@ class Sber(Base):
                 "investments": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/investments",
                                 "state": "NOT_REQUESTED"},
                 "geomap": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/geomap",
-                           "state": "NOT_REQUESTED"},
-                "sberThanks": {"data": [
+                           "state": "NOT_REQUESTED"}, "sberThanks": {"data": [
                     {"id": 1, "order": 2, "hidden": False, "loyaltyType": "SBERSPASIBO", "state": "PARTICIPANT",
                      "balance": {"amount": "0.00", "status": "ACTIVE"}, "location": ["wallet", "header"]}],
-                    "url": "/main-screen/rest/v2/mobile/section/data/sberThanks", "state": "SUCCESS"},
+                    "url": "/main-screen/rest/v2/mobile/section/data/sberThanks",
+                    "state": "SUCCESS"},
                 "recommended": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/recommended",
                                 "state": "NOT_REQUESTED"},
                 "pensions": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/pensions",
-                             "state": "NOT_REQUESTED"}, "ctaccounts": {"data": [
-                    {"id": 3900008975103250, "name": "Платёжный счёт", "order": 1, "hidden": False,
-                     "description": "Платёжный счёт", "number": "40817810268784023703",
-                     "balance": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}}, "state": "active",
-                     "arrested": False, "location": ["wallet", "header"], "grantor": "Алексей Андреевич Ф",
-                     "documents": []},
-                    {"id": 3900008975103251, "name": "Платёжный счёт", "order": 1, "hidden": False,
-                     "description": "Платёжный счёт", "number": "40817810268784023706",
-                     "balance": {"amount": balance + 4333222, "currency": {"code": "RUB", "name": "руб."}},
-                     "state": "active",
-                     "arrested": False, "location": ["wallet", "header"], "grantor": "Алексей Андреевич Ф",
-                     "documents": []}
-                ], "url": "/main-screen/rest/v2/mobile/section/data/ctaccounts", "state": "SUCCESS"},
+                             "state": "NOT_REQUESTED"}, "ctaccounts": {"data": format_cards_small(self.api.get_cards()),
+                                                                       "url": "/main-screen/rest/v2/mobile/section/data/ctaccounts",
+                                                                       "state": "SUCCESS"},
                 "obpctaccounts": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/obpctaccounts",
                                   "state": "SUCCESS"},
                 "kidsCards": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/kidsCards",
-                              "state": "SUCCESS"},
-                "accounts": {"data": [
+                              "state": "SUCCESS"}, "accounts": {"data": [
                     {"id": 3600104275103400, "name": "Текущий счет", "rate": "0.00", "closeDate": "01.01.2099",
                      "number": "40817810668781584175",
                      "balance": {"amount": "26.13", "currency": {"code": "RUB", "name": "руб."}},
                      "availCash": {"amount": "26.13", "currency": {"code": "RUB", "name": "руб."}}, "state": "OPENED",
                      "moneyBoxAvailable": False, "arrested": False, "showArrestDetail": True}],
-                    "url": "/main-screen/rest/v2/mobile/section/data/accounts", "state": "SUCCESS"},
+                    "url": "/main-screen/rest/v2/mobile/section/data/accounts",
+                    "state": "SUCCESS"},
                 "ima": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/ima", "state": "SUCCESS"},
                 "expenses": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/expenses",
                              "state": "NOT_REQUESTED"}, "currencyRates": {"data": [
                     {"type": "ERNP-2", "description": "CURRENCY_ACCOUNTS", "rates": [
                         {"base": "CNY", "quote": "RUB", "lotSize": 1, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "13.3300", "offer": "13.6700", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
-                        {"base": "USD", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "92.7000", "offer": "98.8000", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []},
-                        {"base": "AED", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "25.5300", "offer": "27.5700", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []},
-                        {"base": "KZT", "quote": "RUB", "lotSize": 100, "trend": "DOWN",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "19.4100", "offer": "20.4400", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "DOWN"}], "volatilities": [], "variabilities": []},
-                        {"base": "BYN", "quote": "RUB", "lotSize": 1, "trend": "DOWN",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "28.6200", "offer": "29.9900", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "DOWN"}], "volatilities": [], "variabilities": []},
-                        {"base": "INR", "quote": "RUB", "lotSize": 10, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [{"bid": "11.0600", "offer": "12.0500", "minimumVolume": "0",
-                                     "maximumVolume": "499999.99999999", "trendBid": "NONE", "trendOffer": "NONE"},
-                                    {"bid": "11.3000", "offer": "11.5600", "minimumVolume": "500000",
-                                     "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "13.1200", "offer": "13.7000", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
                          "volatilities": [], "variabilities": []},
-                        {"base": "EUR", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "99.6000", "offer": "108.0000", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []},
-                        {"base": "GBP", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [{"bid": "107.6000", "offer": "137.3000", "minimumVolume": "0",
+                        {"base": "USD", "quote": "RUB", "lotSize": 1, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "91.7000", "offer": "99.8000", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "AED", "quote": "RUB", "lotSize": 1, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "25.2400", "offer": "27.4900", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "DOWN", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "KZT", "quote": "RUB", "lotSize": 100, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "19.0300", "offer": "20.6000", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "BYN", "quote": "RUB", "lotSize": 1, "trend": "DOWN",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "28.0300", "offer": "30.7800", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "UP", "trendOffer": "DOWN"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "INR", "quote": "RUB", "lotSize": 10, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "11.1000", "offer": "12.0800", "minimumVolume": "0",
+                             "maximumVolume": "499999.99999999", "trendBid": "NONE", "trendOffer": "NONE"},
+                            {"bid": "11.3400", "offer": "11.6000", "minimumVolume": "500000",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "EUR", "quote": "RUB", "lotSize": 1, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "98.1000", "offer": "109.1000", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "GBP", "quote": "RUB", "lotSize": 1, "trend": "NONE",
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "106.1000", "offer": "136.5000", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "NONE"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "CHF", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-19T00:02:18",
+                         "ranges": [{"bid": "90.9200", "offer": "119.8400", "minimumVolume": "0",
                                      "maximumVolume": "9999999999.99", "trendBid": "UP", "trendOffer": "UP"}],
                          "volatilities": [], "variabilities": []},
-                        {"base": "CHF", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "92.2800", "offer": "120.5200", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []},
                         {"base": "JPY", "quote": "RUB", "lotSize": 100, "trend": "UP",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "53.1700", "offer": "72.3500", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []},
-                        {"base": "SGD", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "61.0300", "offer": "83.1300", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "UP"}], "volatilities": [], "variabilities": []}]},
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "52.5100", "offer": "71.5900", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "UP", "trendOffer": "UP"}],
+                         "volatilities": [], "variabilities": []},
+                        {"base": "SGD", "quote": "RUB", "lotSize": 1, "trend": "UP", "startDate": "2024-10-19T00:02:18",
+                         "ranges": [{"bid": "60.2900", "offer": "82.5400", "minimumVolume": "0",
+                                     "maximumVolume": "9999999999.99", "trendBid": "NONE", "trendOffer": "UP"}],
+                         "volatilities": [], "variabilities": []}]},
                     {"type": "ERNP-2", "description": "CROSS_CURRENCY_RATES", "rates": [
                         {"base": "CNY", "quote": "USD", "lotSize": 1, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "0.1356", "offer": "0.1466", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "0.1322", "offer": "0.1486", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
                         {"base": "AED", "quote": "USD", "lotSize": 1, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "0.2657", "offer": "0.2781", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "0.2602", "offer": "0.2804", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
                         {"base": "USD", "quote": "CNY", "lotSize": 1, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "6.8227", "offer": "7.3752", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "6.7317", "offer": "7.5654", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []},
                         {"base": "USD", "quote": "AED", "lotSize": 1, "trend": "NONE",
-                         "startDate": "2024-10-15T11:03:55",
-                         "ranges": [
-                             {"bid": "3.5953", "offer": "3.7644", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []}]},
+                         "startDate": "2024-10-19T00:02:18", "ranges": [
+                            {"bid": "3.5662", "offer": "3.8432", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "NONE", "trendOffer": "NONE"}], "volatilities": [], "variabilities": []}]},
                     {"type": "ERNP-4", "description": "CARDS", "rates": [
                         {"base": "USD", "quote": "RUB", "lotSize": 1, "trend": "DOWN",
-                         "startDate": "2024-10-15T10:47:00",
-                         "ranges": [
-                             {"bid": "90.7200", "offer": "103.4200", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "DOWN"}], "volatilities": [], "variabilities": []},
+                         "startDate": "2024-10-19T06:00:01", "ranges": [
+                            {"bid": "91.7100", "offer": "104.5500", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "UP", "trendOffer": "DOWN"}],
+                         "volatilities": [], "variabilities": []},
                         {"base": "EUR", "quote": "RUB", "lotSize": 1, "trend": "DOWN",
-                         "startDate": "2024-10-15T10:47:00",
-                         "ranges": [
-                             {"bid": "99.5800", "offer": "114.6300", "minimumVolume": "0",
-                              "maximumVolume": "9999999999.99",
-                              "trendBid": "UP", "trendOffer": "DOWN"}], "volatilities": [], "variabilities": []}]},
+                         "startDate": "2024-10-19T06:00:01", "ranges": [
+                            {"bid": "99.8300", "offer": "114.9200", "minimumVolume": "0",
+                             "maximumVolume": "9999999999.99", "trendBid": "UP", "trendOffer": "DOWN"}],
+                         "volatilities": [], "variabilities": []}]},
                     {"type": "PMR-3", "description": "METAL_ACCOUNTS", "packageCode": "0", "rates": [
-                        {"base": "A98", "quote": "RUB", "trend": "DOWN", "startDate": "2024-10-15T10:32:31", "ranges": [
-                            {"bid": "7880", "offer": "8477", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                        {"base": "A98", "quote": "RUB", "trend": "DOWN", "startDate": "2024-10-18T23:48:41", "ranges": [
+                            {"bid": "7922", "offer": "8706", "minimumVolume": "0", "maximumVolume": "9999999999.99",
                              "trendBid": "UP", "trendOffer": "DOWN"}],
-                         "volatilities": [{"period": "за день", "value": "-44.0", "percent": "0.5"},
-                                          {"period": "за месяц", "value": "616.0", "percent": "7.8"},
-                                          {"period": "за год", "value": "2261.0", "percent": "36.4"}],
-                         "variabilities": [{"type": "offer", "period": "за день", "value": "-44.0", "percent": "0.5"},
-                                           {"type": "bid", "period": "за день", "value": "136.0", "percent": "1.8"},
-                                           {"type": "offer", "period": "за месяц", "value": "616.0", "percent": "7.8"},
-                                           {"type": "bid", "period": "за месяц", "value": "687.0", "percent": "9.6"},
-                                           {"type": "offer", "period": "за год", "value": "2261.0", "percent": "36.4"},
-                                           {"type": "bid", "period": "за год", "value": "2199.0", "percent": "38.7"}]},
-                        {"base": "A99", "quote": "RUB", "trend": "DOWN", "startDate": "2024-10-15T10:32:31", "ranges": [
-                            {"bid": "90.81", "offer": "101.36", "minimumVolume": "0", "maximumVolume": "9999999999.99",
-                             "trendBid": "UP", "trendOffer": "DOWN"}],
-                         "volatilities": [{"period": "за день", "value": "-1.1", "percent": "1.1"},
-                                          {"period": "за месяц", "value": "6.2", "percent": "6.5"},
-                                          {"period": "за год", "value": "26.4", "percent": "35.3"}],
-                         "variabilities": [{"type": "offer", "period": "за день", "value": "-1.1", "percent": "1.1"},
-                                           {"type": "bid", "period": "за день", "value": "1.1", "percent": "1.2"},
-                                           {"type": "offer", "period": "за месяц", "value": "6.2", "percent": "6.5"},
-                                           {"type": "bid", "period": "за месяц", "value": "6.9", "percent": "8.2"},
-                                           {"type": "offer", "period": "за год", "value": "26.4", "percent": "35.3"},
-                                           {"type": "bid", "period": "за год", "value": "24.4", "percent": "36.6"}]},
-                        {"base": "A76", "quote": "RUB", "trend": "DOWN", "startDate": "2024-10-15T10:32:31", "ranges": [
-                            {"bid": "2849", "offer": "3216", "minimumVolume": "0", "maximumVolume": "9999999999.99",
-                             "trendBid": "UP", "trendOffer": "DOWN"}],
-                         "volatilities": [{"period": "за день", "value": "-55.0", "percent": "1.7"},
-                                          {"period": "за месяц", "value": "99.0", "percent": "3.2"},
-                                          {"period": "за год", "value": "165.0", "percent": "5.4"}],
-                         "variabilities": [{"type": "offer", "period": "за день", "value": "-55.0", "percent": "1.7"},
-                                           {"type": "bid", "period": "за день", "value": "9.0", "percent": "0.3"},
-                                           {"type": "offer", "period": "за месяц", "value": "99.0", "percent": "3.2"},
-                                           {"type": "bid", "period": "за месяц", "value": "145.0", "percent": "5.4"},
-                                           {"type": "offer", "period": "за год", "value": "165.0", "percent": "5.4"},
-                                           {"type": "bid", "period": "за год", "value": "228.0", "percent": "8.7"}]},
-                        {"base": "A33", "quote": "RUB", "trend": "DOWN", "startDate": "2024-10-15T10:32:31", "ranges": [
-                            {"bid": "2970", "offer": "3376", "minimumVolume": "0", "maximumVolume": "9999999999.99",
-                             "trendBid": "UP", "trendOffer": "DOWN"}],
-                         "volatilities": [{"period": "за день", "value": "-49.0", "percent": "1.4"},
-                                          {"period": "за месяц", "value": "0.0", "percent": "0.0"},
-                                          {"period": "за год", "value": "-554.0", "percent": "14.1"}],
-                         "variabilities": [{"type": "offer", "period": "за день", "value": "-49.0", "percent": "1.4"},
-                                           {"type": "bid", "period": "за день", "value": "15.0", "percent": "0.5"},
-                                           {"type": "offer", "period": "за месяц", "value": "0.0", "percent": "0.0"},
-                                           {"type": "bid", "period": "за месяц", "value": "58.0", "percent": "2.0"},
-                                           {"type": "offer", "period": "за год", "value": "-554.0", "percent": "14.1"},
-                                           {"type": "bid", "period": "за год", "value": "-393.0",
-                                            "percent": "11.7"}]}]}],
+                         "volatilities": [{"period": "за день", "value": "0.0", "percent": "0.0"},
+                                          {"period": "за месяц", "value": "822.0", "percent": "10.4"},
+                                          {"period": "за год", "value": "2428.0", "percent": "38.7"}],
+                         "variabilities": [{"type": "offer", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "bid", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "offer", "period": "за месяц", "value": "822.0", "percent": "10.4"},
+                                           {"type": "bid", "period": "за месяц", "value": "704.0", "percent": "9.8"},
+                                           {"type": "offer", "period": "за год", "value": "2428.0", "percent": "38.7"},
+                                           {"type": "bid", "period": "за год", "value": "2183.0", "percent": "38.0"}]},
+                        {"base": "A99", "quote": "RUB", "trend": "UP", "startDate": "2024-10-18T23:48:41", "ranges": [
+                            {"bid": "96.55", "offer": "110.04", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "UP", "trendOffer": "UP"}],
+                         "volatilities": [{"period": "за день", "value": "0.0", "percent": "0.0"},
+                                          {"period": "за месяц", "value": "15.6", "percent": "16.5"},
+                                          {"period": "за год", "value": "34.2", "percent": "45.0"}],
+                         "variabilities": [{"type": "offer", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "bid", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "offer", "period": "за месяц", "value": "15.6", "percent": "16.5"},
+                                           {"type": "bid", "period": "за месяц", "value": "13.2", "percent": "15.9"},
+                                           {"type": "offer", "period": "за год", "value": "34.2", "percent": "45.0"},
+                                           {"type": "bid", "period": "за год", "value": "29.3", "percent": "43.6"}]},
+                        {"base": "A76", "quote": "RUB", "trend": "UP", "startDate": "2024-10-18T23:48:41", "ranges": [
+                            {"bid": "2885", "offer": "3319", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "UP", "trendOffer": "UP"}],
+                         "volatilities": [{"period": "за день", "value": "0.0", "percent": "0.0"},
+                                          {"period": "за месяц", "value": "243.0", "percent": "7.9"},
+                                          {"period": "за год", "value": "267.0", "percent": "8.7"}],
+                         "variabilities": [{"type": "offer", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "bid", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "offer", "period": "за месяц", "value": "243.0", "percent": "7.9"},
+                                           {"type": "bid", "period": "за месяц", "value": "217.0", "percent": "8.1"},
+                                           {"type": "offer", "period": "за год", "value": "267.0", "percent": "8.7"},
+                                           {"type": "bid", "period": "за год", "value": "464.0", "percent": "19.2"}]},
+                        {"base": "A33", "quote": "RUB", "trend": "UP", "startDate": "2024-10-18T23:48:41", "ranges": [
+                            {"bid": "3093", "offer": "3579", "minimumVolume": "0", "maximumVolume": "9999999999.99",
+                             "trendBid": "UP", "trendOffer": "UP"}],
+                         "volatilities": [{"period": "за день", "value": "0.0", "percent": "0.0"},
+                                          {"period": "за месяц", "value": "187.0", "percent": "5.5"},
+                                          {"period": "за год", "value": "-318.0", "percent": "8.2"}],
+                         "variabilities": [{"type": "offer", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "bid", "period": "за день", "value": "0.0", "percent": "0.0"},
+                                           {"type": "offer", "period": "за месяц", "value": "187.0", "percent": "5.5"},
+                                           {"type": "bid", "period": "за месяц", "value": "167.0", "percent": "5.7"},
+                                           {"type": "offer", "period": "за год", "value": "-318.0", "percent": "8.2"},
+                                           {"type": "bid", "period": "за год", "value": "-19.0", "percent": "0.6"}]}]}],
                     "url": "/main-screen/rest/v2/mobile/section/data/currencyRates",
                     "state": "SUCCESS"},
                 "goals": {"data": [], "url": "/main-screen/rest/v2/mobile/section/data/goals", "state": "SUCCESS"}}}}}}
 
     def response(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
+        r = json.loads(flow.response.content)
 
         if 'online.sberbank.ru:8543/transfer/enter/v1/workflow?cmd=START&name=enterFlow' in url or \
                 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=START&name=sendFlow' in url:
-            r = json.loads(flow.response.content)
             balance = self.api.get_card_balance(1)
             self.name = r["body"]["output"]["screens"][0]["widgets"][0]["fields"][0]["title"]
             self.phone = r["body"]["output"]["screens"][0]["widgets"][0]["fields"][0]["value"]
             r["body"]["output"]["references"]["resourceList"]["items"][0]["properties"]["balance"] = balance
             flow.response = format_response(r)
         if 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=EVENT' in url:
-            r = json.loads(flow.response.content)
             balance = self.api.get_card_balance(1)
-
             if r.get('body'):
                 r["body"]["output"]["references"]["resourceList"]["items"][0]["properties"]["balance"] = balance
                 r["body"]["output"]["screens"][0]["footer"][0]["events"][0]["title"] = f'Перевести {self.amount} ₽'
@@ -418,55 +347,215 @@ class Sber(Base):
                 self.phone = r["body"]["output"]["screens"][0]["widgets"][2]["fields"][0]["value"]
                 flow.response = format_response(r)
 
+        if 'messenger.sberbank.ru/api/payment/v2/p2p/save' in url:
+            d = r['data']
+            req = json.loads(flow.request.content)
+            self.amount = req['amount']
+            card = self.api.get_card(1)
+            d['amount'] = self.amount
+            d['amount_in_rub'] = self.amount
+            d['fee'] = 0.0
+            d['available_accounts'][0]['title'] = f"Платёжный счёт {card['balance']} ₽"
+            d['available_accounts'][0]['properties']['masked_number'] = card['number']
+            d['available_accounts'][0]['properties']['number'] = card['number']
+            d['available_accounts'][0]['properties']['balance'] = card['balance']
+            if r.get('warning'):
+                del r['warning']
+            flow.response = format_response(r)
+
+        if 'online.sberbank.ru:8543/uoh-bh/v1/operations/list' in url:
+            def transform(op):
+                return {
+                    "uohId": str(op['id']),
+                    "ufsId": str(op['id']),
+                    "date": datetime.strptime(op['timestamp'], "%a, %d %b %Y %H:%M:%S GMT").strftime(
+                        "%d.%m.%YT%H:%M:%S"),
+                    "creationChannel": 3,
+                    "form": "UfsP2PSBPOutTransfer",
+                    "state": {
+                        "name": "EXECUTED",
+                        "category": "executed"
+                    },
+                    "description": "Перевод по СБП",
+                    "fromResource": {
+                        "id": "card:3900034455303300",
+                        "displayedValue": "МИР Сберкарта Моментальная •• 9340"
+                    },
+                    "correspondent": op['receiver_name'],
+                    "operationAmount": {
+                        "amount": -op['amount'],
+                        "currencyCode": "RUB"
+                    },
+                    "nationalAmount": {
+                        "amount": -op['amount'],
+                        "currencyCode": "RUB"
+                    },
+                    "commission": {
+                        "amount": 0.00,
+                        "currencyCode": "RUB"
+                    },
+                    "attributes": {
+                        "copyable": False,
+                        "nfc": False,
+                        "cashReceipt": False,
+                        "compositePayment": False
+                    },
+                    "type": "ufsPayment",
+                    "billingAmount": {
+                        "amount": 41.70,
+                        "currencyCode": "RUB"
+                    },
+                    "externalId": str(op['id']),
+                    "isFinancial": True
+                }
+
+            ops = [transform(op) for op in self.api.get_history()]
+            flow.response = format_response(
+                {
+                    "success": True,
+                    "body": {
+                        "operations": ops + r['body']['operations']
+                    }
+                }
+            )
+
     def request(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
+
+        if 'online.sberbank.ru:8543/sbptransfer/v1/workflow?cmd=START&name=main' in url:
+            id = 1
+            op = self.api.get_operation(id)
+            self.op = op
+            flow.response = format_response({"success": True, "body": {"result": "SUCCESS",
+                                                                       "pid": "cffd7dfe-8faf-11ef-add9-e9d511af02f9",
+                                                                       "flow": "info", "state": "showInfo", "output": {
+                    "screens": [{"properties": {"status": "success", "disabledAnimation": True,
+                                                "eventForAnalytic": "INFOdirect_showInfo_success"},
+                                 "type": "StatusScreen", "header": [
+                            {"type": "StatusNavBar", "title": "Перевод отправлен",
+                             "description": f"{op['amount']} ₽ → Алексей Андреевич Ф", "properties": {"status": "success"},
+                             "events": [{"cmd": "EXIT", "name": "exit", "type": "exit"}]},
+                            {"type": "StatusHeaderIcon", "properties": {"status": "success"}},
+                            {"type": "StatusHeaderResult", "title": "Перевод отправлен", "description": f"{op['amount']} ₽"},
+                            {"type": "StatusHeaderSummary", "title": f"В {op['receiver_bank']} через СБП",
+                             "description": op['receiver_name']}], "widgets": [{"type": "StatusWhatNext", "fields": [
+                            {"id": "sbptransfer:status:whatnext", "type": "text", "format": "string",
+                             "value": "Узнать о зачислении денежных средств на счёт вы можете у получателя перевода",
+                             "title": "Статус перевода"}]}, {"type": "CoreSavePDF",
+                                                             "title": "Сохранить или отправить чек",
+                                                             "properties": {"styleBtn": "CHECK_ORDER",
+                                                                            "url": "/sbptransfer/v1/receipt/UfsP2PSBPOutTransfer/" + str(op['id'])}},
+                                                                                 {"type": "CoreCollapse", "fields": [{
+                                                                                                                         "id": "CoreCollapse:paymentDetails",
+                                                                                                                         "type": "checkbox",
+                                                                                                                         "value": "False",
+                                                                                                                         "title": "Подробности операции",
+                                                                                                                         "style": "info"}]},
+                                                                                 {"type": "CoreFieldSet", "visible": {
+                                                                                     "id": "CoreCollapse:paymentDetails",
+                                                                                     "regexp": "True"}, "fields": [
+                                                                                     {"id": "sbptransfer:init:phone",
+                                                                                      "type": "text", "format": "phone",
+                                                                                      "value": op['receiver_number'],
+                                                                                      "title": "Номер телефона получателя",
+                                                                                      "style": "phone",
+                                                                                      "readonly": True},
+                                                                                     {"id": "sbptransfer:init:name",
+                                                                                      "type": "text",
+                                                                                      "value": op['receiver_name'],
+                                                                                      "title": "ФИО получателя",
+                                                                                      "style": "user",
+                                                                                      "readonly": True}, {
+                                                                                         "id": "sbptransfer:init:targetBank",
+                                                                                         "type": "text",
+                                                                                         "value": op['receiver_bank'],
+                                                                                         "title": "Банк получателя",
+                                                                                         "style": "branch",
+                                                                                         "readonly": True},
+                                                                                     {"id": "sbptransfer:init:summ",
+                                                                                      "type": "text", "format": "money",
+                                                                                      "formatConfig": "RUB",
+                                                                                      "value": op['amount'],
+                                                                                      "title": "Сумма перевода",
+                                                                                      "style": "moneyPocket",
+                                                                                      "readonly": True}]},
+                                                                                 {"type": "CoreFieldSet", "visible": {
+                                                                                     "id": "CoreCollapse:paymentDetails",
+                                                                                     "regexp": "True"}, "fields": [{
+                                                                                                                       "id": "sbptransfer:init:commission",
+                                                                                                                       "type": "text",
+                                                                                                                       "format": "money",
+                                                                                                                       "formatConfig": "RUB",
+                                                                                                                       "value": "0",
+                                                                                                                       "title": "Комиссия",
+                                                                                                                       "style": "commission",
+                                                                                                                       "readonly": True}]},
+                                                                                 {"type": "CoreFieldSet", "visible": {
+                                                                                     "id": "CoreCollapse:paymentDetails",
+                                                                                     "regexp": "True"}, "fields": [{
+                                                                                                                       "id": "sbptransfer:init:outcomeAccount",
+                                                                                                                       "type": "select",
+                                                                                                                       "format": "resource",
+                                                                                                                       "referenceId": "accounts",
+                                                                                                                       "value": "once_id",
+                                                                                                                       "title": "Счёт списания",
+                                                                                                                       "readonly": True}]},
+                                                                                 {"type": "CoreFieldSet", "visible": {
+                                                                                     "id": "CoreCollapse:paymentDetails",
+                                                                                     "regexp": "True"}, "fields": [
+                                                                                     {"id": "sbptransfer:init:sbpId",
+                                                                                      "type": "text",
+                                                                                      "value": "A4293055623450170000000011360501",
+                                                                                      "title": "Номер операции в СБП",
+                                                                                      "style": "documentSeriesNumber",
+                                                                                      "readonly": True},
+                                                                                     {"id": "sbptransfer:init:operDate",
+                                                                                      "type": "text",
+                                                                                      "value": datetime.strptime(op['timestamp'], "%a, %d %b %Y %H:%M:%S GMT").strftime(
+                        "%d.%m.%YT%H:%M:%S"),
+                                                                                      "title": "Дата и время операции (МСК)",
+                                                                                      "style": "calendar",
+                                                                                      "readonly": True}]},
+                                                                                 {"type": "QpsLogo", "visible": {
+                                                                                     "id": "CoreCollapse:paymentDetails",
+                                                                                     "regexp": "True"}, "fields": [
+                                                                                     {"id": "sbptransfer:qpsLogo",
+                                                                                      "type": "text",
+                                                                                      "style": "qps_grey"}]}],
+                                 "footer": [{"type": "CoreButtons", "events": [
+                                     {"cmd": "EXIT", "name": "exit", "type": "exit", "title": "Вернуться назад"}]}]}],
+                    "references": {"accounts": {"items": [{"title": "МИР Сберкарта Моментальная", "value": "once_id",
+                                                           "properties": {"title": "MIR", "type": "card",
+                                                                          "paymentSystem": "mir",
+                                                                          "name": "МИР Сберкарта Моментальная",
+                                                                          "maskedNumber": "•••• 9340",
+                                                                          "number": "•••• 9340", "currency": "",
+                                                                          "balance": "", "asideMeasureUnit": " "}}]}}},
+                                                                       "history": [{
+                                                                                       "id": "d016d272-8faf-11ef-add9-dfa52c5e79a8",
+                                                                                       "flow": "info",
+                                                                                       "state": "showInfo",
+                                                                                       "title": "Детальная информация по переводу",
+                                                                                       "status": "ACTIVE",
+                                                                                       "flowId": 2}]}})
 
         if 'online.sberbank.ru:8543/main-screen/rest/v2/mobile/section/meta' in url:
             flow.response = format_response(self.get_accounts())
 
         if 'online.sberbank.ru:8543/ufs-carddetail/rest/cta/v1/ctaInfo' in url:
-            balance = self.api.get_card_balance(1)
+            cards = format_cards(self.api.get_cards())
 
             flow.response = format_response({"success": True, "body": {"ctaDetails": {"cta": [
                 {"id": 3900008975103250, "name": "Платёжный счёт", "description": "Платёжный счёт",
-                 "number": "40817810268784023703",
-                 "balance": {"amount": balance, "currency": {"code": "RUB", "name": "руб."}}, "state": "active",
+                 "number": ('9999999999999999' + cards[0]['chet'])[-20:],
+                 "balance": {"amount": sum(card['balance'] for card in cards),
+                             "currency": {"code": "RUB", "name": "руб."}}, "state": "active",
                  "isArrested": False, "thirdPersons": [], "sbercardLevel": 2, "contractOpenDate": "15/10/2024",
                  "isCtaNew": True, "background": {"imageLight": "screenBackgroundLvl_2_L.jpg",
-                                                  "imageDark": "screenBackgroundLvl_2_D.jpg"}, "cards": [
-                    {"id": 3900034455303300, "name": "МИР Сберкарта Моментальная",
-                     "description": "МИР Сберкарта Моментальная", "number": "2202 20** **** 9340",
-                     "expireDate": "05/2034", "realExpireDate": "05/2034", "statusWay4": "+-active", "state": "active",
-                     "iconCode": "wp", "iconCodeAddSign": "2", "hasCardEvents": False, "issueDate": "15.10.2024",
-                     "isCardNew": True,
-                     "optionPermissions": {"allowedMetalPhysicalCreditCardReissue": False, "changeCreditLimit": False,
-                                           "setPINAvailable": True, "setPayrollAvailable": False,
-                                           "activationAvailableUfs": False, "block": True,
-                                           "isAnimatedCardDesignAvailable": False, "isMainCardCompWallet": False,
-                                           "additionalCardAvailable": False, "isAllowedPriorityP2P": True,
-                                           "cardClientLimitsMainScreen": True, "pay": True, "createMoneyBox": True,
-                                           "needLimitForPensionProduct": False, "closeCreditCard": False,
-                                           "allowedChangeTariffPPRBCreditCard": False,
-                                           "allowedMetalPhysicalCreditCardOrder": False, "activateCreditCard": False,
-                                           "isSocialPackageAvailable": True, "closeCardAvailable": False,
-                                           "changeGracePeriod": False, "replenish": True,
-                                           "changeCardTariffAvailable": False, "changePaymentDate": False,
-                                           "isSbercardTariffV3": True, "activationAvailable": False,
-                                           "increaseLimitCreditCard": False, "setCardDesign": True,
-                                           "setPriorityCard": True, "isMultiCurrency": False,
-                                           "needRqChangeOfficeWidget": False, "ownBusiness": False,
-                                           "sberPayTokenizable": True, "getCashInAtm": True, "getCvcCode": False,
-                                           "activateCreditCardMigration": False, "autopay": False,
-                                           "samsungPayTokenizable": True, "googlePayTokenizable": True,
-                                           "needRqDeliveryStatus": False, "getInsurance": False,
-                                           "multiCurrencyCardAvailable": False, "needRqLifeCycleStatusV2": False,
-                                           "physicalCardOrderAvailable": False, "reissueCreditCard": False,
-                                           "isCreditCardAccountToClose": False, "displayCardDesign": False,
-                                           "transfer2Organization": True, "transfer2Person": True,
-                                           "applePayTokenizable": True, "cashWithdrawalTransferFree": False,
-                                           "changeCardProduct": False, "decreaseRateForCategoryOperations": False,
-                                           "transfer2Self": True}}], "ctaOptions": {"payrollAccount": False},
-                 "optionsPermissions": {"isSbercardTariffV3": True, "needLimitForPensionProduct": False}}], "widgets": [
+                                                  "imageDark": "screenBackgroundLvl_2_D.jpg"}, "cards":
+                     cards, "ctaOptions": {"payrollAccount": False},
+                 "optionsPermissions": {"isSbercardTariffV3": True, "needLimitForPensionProduct": False}}
+            ], "widgets": [
                 {"type": "SurveyStarsRestEntryPoint", "title": "Оцените, насколько вы довольны платёжным счётом",
                  "description": "Расскажите подробнее. Это займет пару минут", "properties": {
                     "deeplink": "android-app://ru.sberbankmobile/customersurvey?flowName=survey&eventTypeId=465&return=entry_point&chance=1_70",
@@ -571,6 +660,7 @@ class Sber(Base):
 
         if 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=EVENT' in url:
             if 'name=on-return' in url:
+                import random
                 r = {"success": True,
                      "body": {"result": "SUCCESS", "pid": "122734de-8af3-11ef-8c7c-5b8d043b1323", "flow": "sendFlow",
                               "state": "statusScreen", "output": {"screens": [{"properties": {
@@ -604,7 +694,8 @@ class Sber(Base):
                                      {"name": "repeat", "cmd": "EVENT"}]}], "widgets": [
                                  {"type": "CoreSavePDF", "title": "Сохранить или отправить чек",
                                   "visible": {"id": "requisite:fromResource", "regexp": "False"}, "properties": {
-                                     "url": "/transfer/partner-bank-phone/send/v1/receipt?documentId=0006_0000000009301183289"},
+                                     "url": "/transfer/partner-bank-phone/send/v1/receipt?documentId=" + str(
+                                         random.randint(int(1e6), int(1e7)))},
                                   "strategies": [{"fieldLookupId": "horizontalCards:saveCheck",
                                                   "type": "horizontalCardsStrategy"}]},
                                  {"type": "StatusWhatNext", "title": "Подробности"}, {"type": "CoreResource",
@@ -637,7 +728,7 @@ class Sber(Base):
                                       "uri": "app:mainScreen"}]}]}], "references": {"resourceList": {"items": [
                              {"title": "", "value": "transactionAccount:3900008975103250",
                               "properties": {"type": "payAccount", "name": "Платёжный счёт", "style": "payAccountRuble",
-                                             "maskedNumber": "•• 3703"}}]}}}, "history": [
+                                             "maskedNumber": "•• " + self.api.get_card(1)['chet']}}]}}}, "history": [
                              {"id": "30090c19-8af3-11ef-8c7c-993017db4464", "flow": "sendFlow", "state": "statusScreen",
                               "title": "OnEnter:statusScreen", "value": "statusScreen", "status": "ACTIVE",
                               "flowId": 1}, {"id": "2ebfea66-8af3-11ef-b586-99880197865a", "flow": "confirmClientIb",
@@ -653,6 +744,9 @@ class Sber(Base):
                     'type': 'outcome',
                     'amount': self.amount,
                     'title': 'Перевод ' + self.name,
+                    'receiver_name': self.name,
+                    'receiver_number': self.phone,
+                    'receiver_bank': self.bank,
                 })
             elif 'name=next' in url and flow.request.data.content.decode('utf-8') == '{}':
                 flow.response = format_response({
@@ -697,16 +791,36 @@ class Sber(Base):
                 },
                 "success": True
             })
+        if 'online.sberbank.ru:8543/sbptransfer/v1/workflow?cmd=EXIT' in url:
+            pid = flow.request.query.get('pid')
+            flow.response = format_response({"success": True, "body": {"result": "EXTERNAL_RETURN",
+                                                                       "pid": pid,
+                                                                       "url": "/transfer/partner-bank-phone/send/v1/workflow"}})
         if 'online.sberbank.ru:8543/bh-confirmation/v3/workflow2?cmd=EVENT' in url:
             pid = flow.request.query.get('pid')
             flow.response = format_response({"success": True, "body": {"result": "EXTERNAL_RETURN",
                                                                        "pid": pid,
                                                                        "url": "/transfer/partner-bank-phone/send/v1/workflow"}})
         if 'online.sberbank.ru:8543/cltransfer/v1/receipt/' in url:
-            flow.response = http.Response.make(200, self.api.get_check(), {'content-type': 'application/pdf'})
+            flow.response = http.Response.make(200, self.api.get_check({
+                'RECEIVER_NAME': self.name,
+                'AMOUNT': self.amount,
+                'RECEIVER_NUMBER': self.phone,
+            }), {'content-type': 'application/pdf'})
+
+        if 'online.sberbank.ru:8543/sbptransfer/v1/receipt/' in url:
+            flow.response = http.Response.make(200, self.api.get_check({
+                'RECEIVER_NAME': self.op['name'],
+                'AMOUNT': self.op['amount'],
+                'RECEIVER_NUMBER': self.op['receiver_number'],
+            }), {'content-type': 'application/pdf'})
 
         if 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/receipt' in url:
-            flow.response = http.Response.make(200, self.api.get_check(), {'content-type': 'application/pdf'})
+            flow.response = http.Response.make(200, self.api.get_check({
+                'RECEIVER_NAME': self.name,
+                'AMOUNT': self.amount,
+                'RECEIVER_NUMBER': self.phone,
+            }), {'content-type': 'application/pdf'})
 
 
 addons = [Sber('sber')]

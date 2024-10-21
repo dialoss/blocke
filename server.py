@@ -1,24 +1,28 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from functools import wraps
 
 from check import get_check
-from db import Base, Operation, Card, Settings
+from db import Base, Operation, Card, Settings, sessions
 
 app = Flask(__name__)
 CORS(app)
 
-engines = {
-    "spb": create_engine('sqlite:///spb.db'),
-    "tinkoff": create_engine('sqlite:///tinkoff.db'),
-    "sber": create_engine('sqlite:///sber.db'),
-}
-for eng in engines.values():
-    Base.metadata.create_all(eng)
 
-Session = sessionmaker()
-sessions = {bank: Session(bind=engine) for bank, engine in engines.items()}
+def db_transaction(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        db_name = kwargs.get('db_name') or args[0]
+        session = sessions[db_name]
+        try:
+            result = func(*args, **kwargs)
+            session.commit()
+            return result
+        except SQLAlchemyError as e:
+            session.rollback()
+            return jsonify({"success": False, "message": str(e)}), 500
+    return wrapper
 
 
 @app.route('/<path:filename>')
@@ -57,11 +61,11 @@ def get_history(db_name):
 
 
 @app.route('/<db_name>/insert_operation', methods=['POST'])
+@db_transaction
 def insert_operation(db_name):
     data = request.json
     operation = Operation(**data)
     sessions[db_name].add(operation)
-    sessions[db_name].commit()
     return jsonify({"success": True})
 
 
@@ -78,6 +82,7 @@ def get_operations(db_name):
 
 
 @app.route('/<db_name>/operations', methods=['POST'])
+@db_transaction
 def add_operation(db_name):
     from datetime import datetime
 
@@ -85,16 +90,16 @@ def add_operation(db_name):
     data['timestamp'] = datetime.fromisoformat(data['timestamp'])
     new_operation = Operation(**data)
     sessions[db_name].add(new_operation)
-    sessions[db_name].commit()
+    sessions[db_name].flush()  # This will populate the id without committing
     return jsonify({"success": True, "id": new_operation.id})
 
 
 @app.route('/<db_name>/operations/<int:operation_id>', methods=['DELETE'])
+@db_transaction
 def delete_operation(db_name, operation_id):
     operation = sessions[db_name].query(Operation).filter_by(id=operation_id).first()
     if operation:
         sessions[db_name].delete(operation)
-        sessions[db_name].commit()
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Operation not found"}), 404
 
@@ -106,38 +111,39 @@ def get_cards(db_name):
 
 
 @app.route('/<db_name>/cards', methods=['POST'])
+@db_transaction
 def add_card(db_name):
     data = request.json
     new_card = Card(**data)
     sessions[db_name].add(new_card)
-    sessions[db_name].commit()
+    sessions[db_name].flush()  # This will populate the id without committing
     return jsonify({"success": True, "id": new_card.id})
 
 
 @app.route('/<db_name>/cards/<int:card_id>', methods=['DELETE'])
+@db_transaction
 def delete_card(db_name, card_id):
     card = sessions[db_name].query(Card).filter_by(id=card_id).first()
     if card:
         sessions[db_name].delete(card)
-        sessions[db_name].commit()
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Card not found"}), 404
 
 
 @app.route('/<db_name>/cards/<int:card_id>', methods=['PUT'])
+@db_transaction
 def update_card(db_name, card_id):
     data = request.json
-    session = sessions[db_name]
-    card = session.query(Card).filter_by(id=card_id).first()
+    card = sessions[db_name].query(Card).filter_by(id=card_id).first()
     if card:
         card.balance = data.get('balance', card.balance)
-        card.card_number = data.get('card_number', card.card_number)
-        session.commit()
+        card.number = data.get('number', card.number)
         return jsonify({"success": True, "message": "Card updated successfully"})
     return jsonify({"success": False, "message": "Card not found"}), 404
 
 
 @app.route('/<db_name>/settings', methods=['POST'])
+@db_transaction
 def update_settings(db_name):
     data = request.json
     settings = sessions[db_name].query(Settings).first()
@@ -147,9 +153,12 @@ def update_settings(db_name):
     else:
         settings = Settings(**data)
         sessions[db_name].add(settings)
-    sessions[db_name].commit()
     return jsonify({"success": True})
 
+@app.route('/<db_name>/operation/<int:operation_id>', methods=['GET'])
+def get_operation(db_name, operation_id):
+    operation = sessions[db_name].query(Operation).filter_by(id=operation_id).first()
+    return jsonify(remove_sa_instance_state(operation.__dict__) if operation else {})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

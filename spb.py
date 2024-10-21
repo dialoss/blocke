@@ -142,7 +142,7 @@ class Spb(Base):
                 {"paymentId": 119653590, "ref": "FAST_PAYMENT_SERVICE:119653590",
                  "beneficiaryName": self.name,
                  "description": "Перевод", "amount": {"amount": -1 * self.amount, "currency": "RUB"},
-                 "fee": {"amount": 0.00, "currency": "RUB"}, "remitterAccountName": "Счёт • " + card['card_number'][-4:],
+                 "fee": {"amount": 0.00, "currency": "RUB"}, "remitterAccountName": "Счёт • " + card['number'][-4:],
                  "beneficiaryPhoneNumber": self.phone, "status": "PENDING",
                  "receiptPdfUrl": "https://i.bspb.ru/private-mobile-app-middleware/payments/faster-payments-system/payment/119653590/outgoing-pdf",
                  "canBeFavorite": True, "canBeRepeated": True})

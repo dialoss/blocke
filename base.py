@@ -29,6 +29,11 @@ class API:
         data = self._perform_request(url)
         return data
 
+    def get_cards(self):
+        url = f"{self.url}/{self.name}/cards"
+        data = self._perform_request(url)
+        return data
+
     def get_history(self):
         url = f"{self.url}/{self.name}/get_history"
         data = self._perform_request(url)
@@ -49,7 +54,12 @@ class API:
         req.add_header('Content-Type', 'application/json')
         with urllib.request.urlopen(req) as response:
             return response.read()
-
+        
+    def get_operation(self, id):
+        url = f"{self.url}/{self.name}/operation/{id}"
+        data = self._perform_request(url)
+        return data
+        
 
 class Base():
     def __init__(self, db_name):
@@ -57,4 +67,6 @@ class Base():
         self.amount = 0
         self.phone = ""
         self.card = ""
+        self.bank = ""
+        self.op = None
         self.api = API(db_name, "http://localhost:5000")
