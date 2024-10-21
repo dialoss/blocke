@@ -19,28 +19,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # ФИКС МЕДЛЕЕЕЫЕ ЗАПРОСЫ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-def get_check(bank, d):
-    settings = sessions[bank].query(Settings).first()
-    data = {
-               'DOCUMENT': '4252228616',
-               'SENDER_CARD': '2314',
-               'RECEIVER_CARD': '2511',
-               'CODE': '212251',
-               'AMOUNT': '1234.13',
-               'TIME': datetime.now().strftime('%d.%m.%Y %H:%M'),
-               'SENDER_NAME': settings.fio,
-               'RECEIVER_NAME': 'Скам Скамыч Ф.',
-               'RECEIVER_NUMBER': '+7 (993) 532-49-05',
-           } | d
-    with open(os.path.join(script_dir, bank, '1.html'), 'r', encoding='utf-8') as file:
-        html_content = file.read()
-    for key, value in data.items():
-        html_content = html_content.replace(key, str(value))
-    html_content = html_content.replace('$URL', 'http://127.0.0.1:5000/' + bank)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(html_to_pdf(html_content))
-    return open(os.path.join(script_dir, 'check.pdf'), 'rb').read()
-
 
 async def html_to_pdf(html_content):
     browser = await launch(handleSIGINT=False,
@@ -81,3 +59,29 @@ async def html_to_pdf(html_content):
     })
 
     await browser.close()
+
+
+def get_check(bank, d):
+    settings = sessions[bank].query(Settings).first()
+    data = {
+               'DOCUMENT': '4252228616',
+               'SENDER_CARD': '2314',
+               'RECEIVER_CARD': '2511',
+               'CODE': '212251',
+               'AMOUNT': '1234.13',
+               'TIME': datetime.now().strftime('%d.%m.%Y %H:%M'),
+               # 'SENDER_NAME': settings.fio,
+               'RECEIVER_NAME': 'Скам Скамыч Ф.',
+               'RECEIVER_NUMBER': '+7 (993) 532-49-05',
+           } | d
+    with open(os.path.join(script_dir, bank, '1.html'), 'r', encoding='utf-8') as file:
+        html_content = file.read()
+    for key, value in data.items():
+        html_content = html_content.replace(key, str(value))
+    html_content = html_content.replace('$URL', 'http://127.0.0.1:5000/' + bank)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(html_to_pdf(html_content))
+    return open(os.path.join(script_dir, 'check.pdf'), 'rb').read()
+
+
+# get_check('tinkoff', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
