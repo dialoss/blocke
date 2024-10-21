@@ -1,11 +1,35 @@
-import { launch } from 'puppeteer-core';
+import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import path from 'path';
 
 const scriptDir = path.dirname(new URL(import.meta.url).pathname);
 
-export async function getCheck(bank, data) {
+export default async (req: Request) => {
+  const { bank, data } = await req.json();
 
+  try {
+    const htmlContent = await getHtmlContent(bank, data);
+    const pdfBuffer = await htmlToPdf(htmlContent);
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename=check.pdf'
+      },
+      body: pdfBuffer.toString('base64'),
+      isBase64Encoded: true
+    };
+  } catch (error) {
+    console.error('Error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' })
+    };
+  }
+};
+
+async function getHtmlContent(bank: string, data: Record<string, string>) {
   let htmlContent = await fs.promises.readFile(path.join(scriptDir, bank, '1.html'), 'utf-8');
   
   for (const [key, value] of Object.entries(data)) {
@@ -13,12 +37,11 @@ export async function getCheck(bank, data) {
   }
   htmlContent = htmlContent.replace('$URL', '/' + bank);
 
-  await htmlToPdf(htmlContent);
-  return await fs.promises.readFile(path.join(scriptDir, 'check.pdf'));
+  return htmlContent;
 }
 
-async function htmlToPdf(htmlContent) {
-  const browser = await launch({
+async function htmlToPdf(htmlContent: string) {
+  const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     ignoreHTTPSErrors: true
   });
@@ -33,14 +56,17 @@ async function htmlToPdf(htmlContent) {
 
     const dimensions = await page.evaluate(() => {
       const element = document.getElementById('p1');
-      return {
+      return element ? {
         width: element.offsetWidth,
         height: element.offsetHeight
-      };
+      } : null;
     });
 
-    await page.pdf({
-      path: path.join(scriptDir, 'check.pdf'),
+    if (!dimensions) {
+      throw new Error('Failed to get dimensions');
+    }
+
+    const pdfBuffer = await page.pdf({
       width: dimensions.width,
       height: dimensions.height,
       printBackground: true,
@@ -51,6 +77,8 @@ async function htmlToPdf(htmlContent) {
         left: '0px'
       }
     });
+
+    return pdfBuffer;
   } finally {
     await browser.close();
   }
