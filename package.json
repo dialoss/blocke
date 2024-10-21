@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@sparticuz/chromium": "^110.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
     "puppeteer-core": "^19.6.0",
     "serverless-http": "^3.2.0"
   },
