@@ -22,6 +22,7 @@ def db_transaction(func):
         except SQLAlchemyError as e:
             session.rollback()
             return jsonify({"success": False, "message": str(e)}), 500
+
     return wrapper
 
 
@@ -38,7 +39,12 @@ def remove_sa_instance_state(data):
 
 @app.route('/<db_name>/get_check', methods=['POST'])
 def get_check_server(db_name):
-    data = request.json
+    settings = sessions[db_name].query(Settings).first()
+    data = request.json | {
+        'SENDER_NAME': settings.fio,
+        'SENDER_NUMBER': settings.phone,
+        'SENDER_CARD': settings.card
+    }
     return get_check(db_name, data)
 
 
@@ -104,6 +110,18 @@ def delete_operation(db_name, operation_id):
     return jsonify({"success": False, "message": "Operation not found"}), 404
 
 
+@app.route('/<db_name>/operations/<int:operation_id>', methods=['PUT'])
+@db_transaction
+def update_operation(db_name, operation_id):
+    data = request.json
+    operation = sessions[db_name].query(Operation).filter_by(id=operation_id).first()
+    if operation:
+        for key, value in data.items():
+            setattr(operation, key, value)
+        return jsonify({"success": True, "message": "Operation updated successfully"})
+    return jsonify({"success": False, "message": "Operation not found"}), 404
+
+
 @app.route('/<db_name>/cards', methods=['GET'])
 def get_cards(db_name):
     cards = sessions[db_name].query(Card).all()
@@ -155,10 +173,12 @@ def update_settings(db_name):
         sessions[db_name].add(settings)
     return jsonify({"success": True})
 
+
 @app.route('/<db_name>/operation/<int:operation_id>', methods=['GET'])
 def get_operation(db_name, operation_id):
     operation = sessions[db_name].query(Operation).filter_by(id=operation_id).first()
     return jsonify(remove_sa_instance_state(operation.__dict__) if operation else {})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

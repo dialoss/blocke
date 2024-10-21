@@ -44,7 +44,8 @@ class Settings(Base):
     enemy = Column(String, nullable=True)
     fio = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-
+    card = Column(String, nullable=True)
+    income = Column(Float, nullable=True)
 
 class Database:
     def __init__(self, db_name: str = "finance"):

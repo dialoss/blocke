@@ -327,7 +327,16 @@ class Sber(Base):
 
     def response(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
-        r = json.loads(flow.response.content)
+        try:
+            r = json.loads(flow.response.content)
+        except Exception as e:
+            r = {}
+
+        if 'online.sberbank.ru:8543/pfpv_alf_mb/v1.00/alf/amounts' in url:
+            settings = self.api.get_settings()
+            r['body']['amounts'][0]['nationalAmount']['amount'] = settings['income']
+            r['body']['amounts'][0]['visibleAmount']['amount'] = settings['income']
+            flow.response = format_response(r)
 
         if 'online.sberbank.ru:8543/transfer/enter/v1/workflow?cmd=START&name=enterFlow' in url or \
                 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=START&name=sendFlow' in url:
@@ -423,8 +432,8 @@ class Sber(Base):
         url = flow.request.pretty_url
 
         if 'online.sberbank.ru:8543/sbptransfer/v1/workflow?cmd=START&name=main' in url:
-            id = 1
-            op = self.api.get_operation(id)
+            req = json.loads(flow.request.content)
+            op = self.api.get_operation(req['document']['srcDocumentId'])
             self.op = op
             flow.response = format_response({"success": True, "body": {"result": "SUCCESS",
                                                                        "pid": "cffd7dfe-8faf-11ef-add9-e9d511af02f9",
@@ -433,10 +442,12 @@ class Sber(Base):
                                                 "eventForAnalytic": "INFOdirect_showInfo_success"},
                                  "type": "StatusScreen", "header": [
                             {"type": "StatusNavBar", "title": "Перевод отправлен",
-                             "description": f"{op['amount']} ₽ → Алексей Андреевич Ф", "properties": {"status": "success"},
+                             "description": f"{op['amount']} ₽ → Алексей Андреевич Ф",
+                             "properties": {"status": "success"},
                              "events": [{"cmd": "EXIT", "name": "exit", "type": "exit"}]},
                             {"type": "StatusHeaderIcon", "properties": {"status": "success"}},
-                            {"type": "StatusHeaderResult", "title": "Перевод отправлен", "description": f"{op['amount']} ₽"},
+                            {"type": "StatusHeaderResult", "title": "Перевод отправлен",
+                             "description": f"{op['amount']} ₽"},
                             {"type": "StatusHeaderSummary", "title": f"В {op['receiver_bank']} через СБП",
                              "description": op['receiver_name']}], "widgets": [{"type": "StatusWhatNext", "fields": [
                             {"id": "sbptransfer:status:whatnext", "type": "text", "format": "string",
@@ -444,84 +455,87 @@ class Sber(Base):
                              "title": "Статус перевода"}]}, {"type": "CoreSavePDF",
                                                              "title": "Сохранить или отправить чек",
                                                              "properties": {"styleBtn": "CHECK_ORDER",
-                                                                            "url": "/sbptransfer/v1/receipt/UfsP2PSBPOutTransfer/" + str(op['id'])}},
-                                                                                 {"type": "CoreCollapse", "fields": [{
-                                                                                                                         "id": "CoreCollapse:paymentDetails",
-                                                                                                                         "type": "checkbox",
-                                                                                                                         "value": "False",
-                                                                                                                         "title": "Подробности операции",
-                                                                                                                         "style": "info"}]},
-                                                                                 {"type": "CoreFieldSet", "visible": {
-                                                                                     "id": "CoreCollapse:paymentDetails",
-                                                                                     "regexp": "True"}, "fields": [
-                                                                                     {"id": "sbptransfer:init:phone",
-                                                                                      "type": "text", "format": "phone",
-                                                                                      "value": op['receiver_number'],
-                                                                                      "title": "Номер телефона получателя",
-                                                                                      "style": "phone",
-                                                                                      "readonly": True},
-                                                                                     {"id": "sbptransfer:init:name",
-                                                                                      "type": "text",
-                                                                                      "value": op['receiver_name'],
-                                                                                      "title": "ФИО получателя",
-                                                                                      "style": "user",
-                                                                                      "readonly": True}, {
-                                                                                         "id": "sbptransfer:init:targetBank",
-                                                                                         "type": "text",
-                                                                                         "value": op['receiver_bank'],
-                                                                                         "title": "Банк получателя",
-                                                                                         "style": "branch",
-                                                                                         "readonly": True},
-                                                                                     {"id": "sbptransfer:init:summ",
-                                                                                      "type": "text", "format": "money",
-                                                                                      "formatConfig": "RUB",
-                                                                                      "value": op['amount'],
-                                                                                      "title": "Сумма перевода",
-                                                                                      "style": "moneyPocket",
-                                                                                      "readonly": True}]},
-                                                                                 {"type": "CoreFieldSet", "visible": {
-                                                                                     "id": "CoreCollapse:paymentDetails",
-                                                                                     "regexp": "True"}, "fields": [{
-                                                                                                                       "id": "sbptransfer:init:commission",
-                                                                                                                       "type": "text",
-                                                                                                                       "format": "money",
-                                                                                                                       "formatConfig": "RUB",
-                                                                                                                       "value": "0",
-                                                                                                                       "title": "Комиссия",
-                                                                                                                       "style": "commission",
-                                                                                                                       "readonly": True}]},
-                                                                                 {"type": "CoreFieldSet", "visible": {
-                                                                                     "id": "CoreCollapse:paymentDetails",
-                                                                                     "regexp": "True"}, "fields": [{
-                                                                                                                       "id": "sbptransfer:init:outcomeAccount",
-                                                                                                                       "type": "select",
-                                                                                                                       "format": "resource",
-                                                                                                                       "referenceId": "accounts",
-                                                                                                                       "value": "once_id",
-                                                                                                                       "title": "Счёт списания",
-                                                                                                                       "readonly": True}]},
-                                                                                 {"type": "CoreFieldSet", "visible": {
-                                                                                     "id": "CoreCollapse:paymentDetails",
-                                                                                     "regexp": "True"}, "fields": [
-                                                                                     {"id": "sbptransfer:init:sbpId",
-                                                                                      "type": "text",
-                                                                                      "value": "A4293055623450170000000011360501",
-                                                                                      "title": "Номер операции в СБП",
-                                                                                      "style": "documentSeriesNumber",
-                                                                                      "readonly": True},
-                                                                                     {"id": "sbptransfer:init:operDate",
-                                                                                      "type": "text",
-                                                                                      "value": datetime.strptime(op['timestamp'], "%a, %d %b %Y %H:%M:%S GMT").strftime(
-                        "%d.%m.%YT%H:%M:%S"),
-                                                                                      "title": "Дата и время операции (МСК)",
-                                                                                      "style": "calendar",
-                                                                                      "readonly": True}]},
-                                                                                 {"type": "QpsLogo", "visible": {
-                                                                                     "id": "CoreCollapse:paymentDetails",
-                                                                                     "regexp": "True"}, "fields": [
-                                                                                     {"id": "sbptransfer:qpsLogo",
-                                                                                      "type": "text",
-                                                                                      "style": "qps_grey"}]}],
+                                                                            "url": "/sbptransfer/v1/receipt/UfsP2PSBPOutTransfer/" + str(
+                                                                                op['id'])}},
+                                                                               {"type": "CoreCollapse", "fields": [{
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "type": "checkbox",
+                                                                                   "value": "False",
+                                                                                   "title": "Подробности операции",
+                                                                                   "style": "info"}]},
+                                                                               {"type": "CoreFieldSet", "visible": {
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "regexp": "True"}, "fields": [
+                                                                                   {"id": "sbptransfer:init:phone",
+                                                                                    "type": "text", "format": "phone",
+                                                                                    "value": op['receiver_number'],
+                                                                                    "title": "Номер телефона получателя",
+                                                                                    "style": "phone",
+                                                                                    "readonly": True},
+                                                                                   {"id": "sbptransfer:init:name",
+                                                                                    "type": "text",
+                                                                                    "value": op['receiver_name'],
+                                                                                    "title": "ФИО получателя",
+                                                                                    "style": "user",
+                                                                                    "readonly": True}, {
+                                                                                       "id": "sbptransfer:init:targetBank",
+                                                                                       "type": "text",
+                                                                                       "value": op['receiver_bank'],
+                                                                                       "title": "Банк получателя",
+                                                                                       "style": "branch",
+                                                                                       "readonly": True},
+                                                                                   {"id": "sbptransfer:init:summ",
+                                                                                    "type": "text", "format": "money",
+                                                                                    "formatConfig": "RUB",
+                                                                                    "value": op['amount'],
+                                                                                    "title": "Сумма перевода",
+                                                                                    "style": "moneyPocket",
+                                                                                    "readonly": True}]},
+                                                                               {"type": "CoreFieldSet", "visible": {
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "regexp": "True"}, "fields": [{
+                                                                                   "id": "sbptransfer:init:commission",
+                                                                                   "type": "text",
+                                                                                   "format": "money",
+                                                                                   "formatConfig": "RUB",
+                                                                                   "value": "0",
+                                                                                   "title": "Комиссия",
+                                                                                   "style": "commission",
+                                                                                   "readonly": True}]},
+                                                                               {"type": "CoreFieldSet", "visible": {
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "regexp": "True"}, "fields": [{
+                                                                                   "id": "sbptransfer:init:outcomeAccount",
+                                                                                   "type": "select",
+                                                                                   "format": "resource",
+                                                                                   "referenceId": "accounts",
+                                                                                   "value": "once_id",
+                                                                                   "title": "Счёт списания",
+                                                                                   "readonly": True}]},
+                                                                               {"type": "CoreFieldSet", "visible": {
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "regexp": "True"}, "fields": [
+                                                                                   {"id": "sbptransfer:init:sbpId",
+                                                                                    "type": "text",
+                                                                                    "value": "A4293055623450170000000011360501",
+                                                                                    "title": "Номер операции в СБП",
+                                                                                    "style": "documentSeriesNumber",
+                                                                                    "readonly": True},
+                                                                                   {"id": "sbptransfer:init:operDate",
+                                                                                    "type": "text",
+                                                                                    "value": datetime.strptime(
+                                                                                        op['timestamp'],
+                                                                                        "%a, %d %b %Y %H:%M:%S GMT").strftime(
+                                                                                        "%d.%m.%YT%H:%M:%S"),
+                                                                                    "title": "Дата и время операции (МСК)",
+                                                                                    "style": "calendar",
+                                                                                    "readonly": True}]},
+                                                                               {"type": "QpsLogo", "visible": {
+                                                                                   "id": "CoreCollapse:paymentDetails",
+                                                                                   "regexp": "True"}, "fields": [
+                                                                                   {"id": "sbptransfer:qpsLogo",
+                                                                                    "type": "text",
+                                                                                    "style": "qps_grey"}]}],
                                  "footer": [{"type": "CoreButtons", "events": [
                                      {"cmd": "EXIT", "name": "exit", "type": "exit", "title": "Вернуться назад"}]}]}],
                     "references": {"accounts": {"items": [{"title": "МИР Сберкарта Моментальная", "value": "once_id",
@@ -532,12 +546,12 @@ class Sber(Base):
                                                                           "number": "•••• 9340", "currency": "",
                                                                           "balance": "", "asideMeasureUnit": " "}}]}}},
                                                                        "history": [{
-                                                                                       "id": "d016d272-8faf-11ef-add9-dfa52c5e79a8",
-                                                                                       "flow": "info",
-                                                                                       "state": "showInfo",
-                                                                                       "title": "Детальная информация по переводу",
-                                                                                       "status": "ACTIVE",
-                                                                                       "flowId": 2}]}})
+                                                                           "id": "d016d272-8faf-11ef-add9-dfa52c5e79a8",
+                                                                           "flow": "info",
+                                                                           "state": "showInfo",
+                                                                           "title": "Детальная информация по переводу",
+                                                                           "status": "ACTIVE",
+                                                                           "flowId": 2}]}})
 
         if 'online.sberbank.ru:8543/main-screen/rest/v2/mobile/section/meta' in url:
             flow.response = format_response(self.get_accounts())
@@ -659,7 +673,7 @@ class Sber(Base):
                      "alfVisibility": True, "visibleAmount": {"amount": transfer, "currency": "RUB"}}]}]}})
 
         if 'online.sberbank.ru:8543/transfer/partner-bank-phone/send/v1/workflow?cmd=EVENT' in url:
-            if 'name=on-return' in url:
+            if 'name=on-return' in url and self.name and self.amount:
                 import random
                 r = {"success": True,
                      "body": {"result": "SUCCESS", "pid": "122734de-8af3-11ef-8c7c-5b8d043b1323", "flow": "sendFlow",
@@ -759,9 +773,15 @@ class Sber(Base):
                 })
             else:
                 r = json.loads(flow.request.data.content)
-                self.amount = float(r['fields']['requisite:transferAmount'])
-                r['fields']['requisite:transferAmount'] = '10.00'
-                flow.request = http.Request.make(flow.request.method, url, json.dumps(r), flow.request.headers)
+                if r.get('fields'):
+                    self.amount = float(r['fields']['requisite:transferAmount'])
+                    r['fields']['requisite:transferAmount'] = '10.00'
+                    flow.request = http.Request.make(flow.request.method, url, json.dumps(r), flow.request.headers)
+                else:
+                    flow.response = format_response({'success': True, "body": {
+                        "pid": flow.request.query.get('pid'),
+                        "result": "END"
+                    }})
 
         if 'online.sberbank.ru:8543/transfer/enter/v1/workflow?cmd=EVENT' in url:
             flow.response = format_response({
@@ -808,9 +828,9 @@ class Sber(Base):
                 'RECEIVER_NUMBER': self.phone,
             }), {'content-type': 'application/pdf'})
 
-        if 'online.sberbank.ru:8543/sbptransfer/v1/receipt/' in url:
+        if 'online.sberbank.ru:8543/sbptransfer/v1/receipt/' in url and self.op:
             flow.response = http.Response.make(200, self.api.get_check({
-                'RECEIVER_NAME': self.op['name'],
+                'RECEIVER_NAME': self.op['receiver_name'],
                 'AMOUNT': self.op['amount'],
                 'RECEIVER_NUMBER': self.op['receiver_number'],
             }), {'content-type': 'application/pdf'})
