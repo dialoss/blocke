@@ -77,7 +77,6 @@ def get_check(bank, d):
     loop.run_until_complete(html_to_pdf(html_content))
     
     from PyPDF2 import PdfReader, PdfWriter
-    from datetime import datetime
 
     pdf_path = os.path.join(script_dir, 'check.pdf')
     reader = PdfReader(pdf_path)
@@ -93,8 +92,8 @@ def get_check(bank, d):
         '/Keywords': '22.10.2024 08:41:12|f8848b21-135a-4ad6-b014-15c00b30e714|7258',
         '/Producer': 'OpenPDF 1.3.30.jaspersoft.2',
         '/Creator': 'JasperReports Library version 6.20.3-415f9428cffdb6805c6f85bbb29ebaf18813a2ab',
-        '/CreationDate': datetime(2024, 10, 22, 8, 41, 12),
-        '/ModDate': datetime(2024, 10, 22, 8, 41, 12)
+        '/CreationDate': datetime.now().strftime('D:%Y%m%d%H%M%S+00\'00\''),
+        '/ModDate': datetime.now().strftime('D:%Y%m%d%H%M%S+00\'00\'')
     })
 
     with open(pdf_path, 'wb') as output_file:
@@ -103,4 +102,4 @@ def get_check(bank, d):
     return open(pdf_path, 'rb').read()
 
 
-# get_check('tinkoff', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
+get_check('sber', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
