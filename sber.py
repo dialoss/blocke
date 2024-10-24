@@ -8,8 +8,8 @@ from base import Base
 
 
 def format_cards(cards):
-    return [{"id": 3900034455303300 + i, "name": "МИР Сберкарта Моментальная", "order": 1, "hidden": True,
-             "description": "МИР Сберкарта Моментальная", "cardHolder": "SBERKARTA MOMENTUM",
+    return [{"id": 3900034455303300 + i, "name": "", "order": 1, "hidden": True,
+             "description": "", "cardHolder": "SBERKARTA MOMENTUM",
              "number": ('9999999999999999' + card['number'])[-16:], "selfEmployed": False, "isMain": True,
              "type": "debit",
              "availableLimit": {"amount": str(card['balance']), "currency": {"code": "RUB", "name": "руб."}},
@@ -411,7 +411,7 @@ class Sber(Base):
                     "description": "Перевод по СБП",
                     "fromResource": {
                         "id": "card:3900034455303300",
-                        "displayedValue": "МИР Сберкарта Моментальная •• 9340"
+                        "displayedValue": " •• 9340"
                     },
                     "correspondent": op['receiver_name'],
                     "operationAmount": {
@@ -571,10 +571,10 @@ class Sber(Base):
                                                                                     "style": "qps_grey"}]}],
                                  "footer": [{"type": "CoreButtons", "events": [
                                      {"cmd": "EXIT", "name": "exit", "type": "exit", "title": "Вернуться назад"}]}]}],
-                    "references": {"accounts": {"items": [{"title": "МИР Сберкарта Моментальная", "value": "once_id",
+                    "references": {"accounts": {"items": [{"title": "", "value": "once_id",
                                                            "properties": {"title": "MIR", "type": "card",
                                                                           "paymentSystem": "mir",
-                                                                          "name": "МИР Сберкарта Моментальная",
+                                                                          "name": "",
                                                                           "maskedNumber": "•••• 9340",
                                                                           "number": "•••• 9340", "currency": "",
                                                                           "balance": "", "asideMeasureUnit": " "}}]}}},
