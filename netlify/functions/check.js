@@ -1,10 +1,12 @@
+
 import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import path from 'path';
 
-const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+const scriptDir = ''
+import {executablePath} from 'puppeteer'
 
-export default async (req: Request) => {
+export default async (req) => {
   const { bank, data } = await req.json();
 
   try {
@@ -29,25 +31,27 @@ export default async (req: Request) => {
   }
 };
 
-async function getHtmlContent(bank: string, data: Record<string, string>) {
+async function getHtmlContent(bank, data) {
   let htmlContent = await fs.promises.readFile(path.join(scriptDir, bank, '1.html'), 'utf-8');
   
   for (const [key, value] of Object.entries(data)) {
-    htmlContent = htmlContent.replace(key, String(value));
+    htmlContent = htmlContent.replaceAll(key, String(value));
   }
-  htmlContent = htmlContent.replace('$URL', '/' + bank);
+  htmlContent = htmlContent.replaceAll('$URL', 'http://127.0.0.1:5000/' + bank);
 
   return htmlContent;
 }
 
-async function htmlToPdf(htmlContent: string) {
+async function htmlToPdf(htmlContent) {
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    ignoreHTTPSErrors: true
+    ignoreHTTPSErrors: true,
+    executablePath: executablePath(),
+    headless: false
   });
 
   try {
-    const page = await browser.newPage();
+    const page = (await browser.pages())[0];
     await page.setContent(htmlContent);
     await page.setViewport({ width: 1920, height: 1080 });
 
@@ -83,3 +87,19 @@ async function htmlToPdf(htmlContent: string) {
     await browser.close();
   }
 }
+const currentTime = new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+const htmlContent = await getHtmlContent('tinkoff', {'TIME': currentTime, 'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NUMBER':'+7 (912) 999-55-66','RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'});
+const pdfBuffer = await htmlToPdf(htmlContent);
+import { PDFDocument } from 'pdf-lib'
+const pdf = await PDFDocument.load(pdfBuffer);
+pdf.setTitle('Квитанция-11100399')
+pdf.setAuthor('')
+pdf.setSubject('"/reports/IB/Receipt"')
+pdf.setKeywords(['22.10.2024', '08:41:12|f8848b21-135a-4ad6-b014-15c00b30e714|7258'])
+pdf.setProducer('OpenPDF 1.3.30.jaspersoft.2')
+pdf.setCreator('JasperReports Library version 6.20.3-415f9428cffdb6805c6f85bbb29ebaf18813a2ab')
+pdf.setCreationDate(new Date('2024-10-22 08:41:12+03:00'))
+pdf.setModificationDate(new Date('2024-10-22 08:41:12+03:00'))
+
+fs.writeFileSync('tinkoff.pdf', await pdf.save({useObjectStreams: false}));
+

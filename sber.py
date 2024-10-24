@@ -332,6 +332,18 @@ class Sber(Base):
         except Exception as e:
             r = {}
 
+        if 'online.sberbank.ru:8543/sm-uko/v3/mobile/gzip/session/create' in url:
+            settings = self.api.get_settings()
+            try:
+                f, i, o = settings['fio'].split()
+            except:
+                f, i, o = 'Скам Скамыч Скаменко'.split()
+            r["body"]["clientInfo"]["person"]["firstName"] = i
+            r["body"]["clientInfo"]["person"]["secondName"] = f
+            r["body"]["clientInfo"]["person"]["middleName"] = o
+            r["body"]["clientInfo"]["person"]["phones"][0] = settings['phone']
+            flow.response = http.Response.make(flow.response.status_code, json.dumps(r), flow.response.headers)
+
         if 'online.sberbank.ru:8543/pfpv_alf_mb/v1.00/alf/amounts' in url:
             settings = self.api.get_settings()
             r['body']['amounts'][0]['nationalAmount']['amount'] = settings['income']
@@ -355,6 +367,17 @@ class Sber(Base):
                 self.name = r["body"]["output"]["screens"][0]["widgets"][3]["fields"][0]["value"]
                 self.phone = r["body"]["output"]["screens"][0]["widgets"][2]["fields"][0]["value"]
                 flow.response = format_response(r)
+        if 'online.sberbank.ru:8543/p2ptransfer-xb-card/v1/workflow?cmd=START' in url:
+            card = self.api.get_card(1)
+            r['body']['output']['references']['fromResource']['items'][0]["properties"]["balance"] = card['balance']
+            r['body']['output']['references']['fromResource']['items'][0]["properties"]["maskedNumber"] = '•• ' + card[
+                                                                                                                      'number'][
+                                                                                                                  -4:]
+            r['body']['output']['references']['fromResource']['items'][0]['title'] = 'Платёжный счёт •• ' + card[
+                                                                                                                'number'][
+                                                                                                            -4:]
+
+            flow.response = format_response(r)
 
         if 'messenger.sberbank.ru/api/payment/v2/p2p/save' in url:
             d = r['data']
@@ -427,6 +450,16 @@ class Sber(Base):
                     }
                 }
             )
+
+        if 'online.sberbank.ru:8543/p2ptransfer-xb-card/v1/workflow?cmd=EVENT' in url:
+            card = self.api.get_card(1)
+            r["body"]["output"]["screens"][0]["widgets"][2]["fields"][0]["value"] = self.amount
+            r["body"]["output"]["screens"][0]["widgets"][2]["fields"][1]["value"] = self.amount + 30
+
+            r["body"]["output"]["references"]["resourceList"]["items"][0]["properties"]["maskedNumber"] = card['number']
+            r["body"]["output"]["references"]["resourceList"]["items"][0]["properties"]["balance"] = card['balance']
+            r["body"]["output"]["screens"][0]["footer"][0]["events"][0]["title"] = f"Перевести {self.amount} ₽"
+            flow.response = format_response(r)
 
     def request(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
@@ -695,10 +728,10 @@ class Sber(Base):
                                  {"type": "StatusNavBar", "title": "Перевод выполнен",
                                   "events": [{"cmd": "EXIT", "name": "exit", "type": "exit"}]},
                                  {"type": "StatusHeader2021", "title": f"{self.amount} ₽",
-                                  "description": "Т-Банк (Тинькофф)",
+                                  "description": self.bank,
                                   "properties": {"style": "summary",
                                                  "accessibilityTitle": f"{self.amount} рублей 00 копеек",
-                                                 "accessibilityDescription": "Т-Банк (Тинькофф)"}},
+                                                 "accessibilityDescription": self.bank}},
                                  {"type": "HorizontalCards", "fields": [
                                      {"id": "horizontalCards:saveCheck", "type": "text", "format": "string",
                                       "title": "Сохранить\nчек", "style": "ds_ic_36_receipt"},
@@ -726,7 +759,7 @@ class Sber(Base):
                                   "properties": {"iconUrl": "https://cms-res.online.sberbank.ru/uts_p2p/TinkoFF.png",
                                                  "customTheme": False, "isAutoTransferWidget": False}, "fields": [
                                      {"id": "id:CustomThemeWithRemoteIcon", "type": "text", "title": "Куда",
-                                      "value": self.phone, "description": "Т-Банк (Тинькофф)",
+                                      "value": self.phone, "description": self.bank,
                                       "style": "ds_ic_36_building_fill"}]}, {"type": "CoreFieldSet", "fields": [
                                      {"id": "id:CoreFieldSet1", "type": "text", "title": "Получатель",
                                       "value": self.name, "readonly": True},
@@ -841,6 +874,25 @@ class Sber(Base):
                 'AMOUNT': self.amount,
                 'RECEIVER_NUMBER': self.phone,
             }), {'content-type': 'application/pdf'})
+
+        if 'online.sberbank.ru:8543/p2ptransfer-xb-card/v1/getRecalculation' in url:
+            req = json.loads(flow.request.content)
+            self.amount = float(req['toAmount'])
+            flow.response = format_response({
+                "body": {
+                    "commissionDescription": "Комиссия 30 ₽",
+                    "currencyRateDescription": "",
+                    "receiverCurrencyRateDescription": "",
+                    "statusCode": "0",
+                    "totalAmountDescription": f"Спишем {30 + self.amount} ₽"
+                },
+                "success": True
+            })
+
+        if 'online.sberbank.ru:8543/p2ptransfer-xb-card/v1/workflow?cmd=EVENT' in url:
+            req = json.loads(flow.request.content)
+            req['fields']['p2ptransfer:xbcard:amount'] = '10'
+            flow.request = http.Request.make(flow.request.method, url, json.dumps(req), flow.request.headers)
 
 
 addons = [Sber('sber')]

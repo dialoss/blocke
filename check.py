@@ -84,4 +84,4 @@ def get_check(bank, d):
     return open(os.path.join(script_dir, 'check.pdf'), 'rb').read()
 
 
-# get_check('tinkoff', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
+get_check('tinkoff', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})

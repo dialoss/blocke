@@ -1,0 +1,17 @@
+<svg viewBox="0 0 412 791" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<style>
+.g0{fill:none;stroke:#FFDD2D;stroke-width:1.527;stroke-miterlimit:10;}
+.g1{fill:#FFF;fill-opacity:0;}
+.g2{fill:none;stroke:#FFF;stroke-width:1.527;stroke-miterlimit:10;}
+.g3{fill:none;stroke:#C2C2C2;stroke-width:0.381;stroke-miterlimit:10;}
+</style>
+</defs>
+<image preserveAspectRatio="none" x="185" y="43" width="43" height="43" href="img/1.png"/>
+<path d="M29 185.6H380.4" class="g0"/>
+<path d="M30.6 357.5H381.9v165H30.6v-165Z" class="g1"/>
+<path d="M0 790.6H412.5" class="g2"/>
+<path d="M30.6 668.4H381.9" class="g0"/>
+<image preserveAspectRatio="none" x="101" y="536" width="267" height="97" href="img/2.png"/>
+<path d="M1.5 789.9H411" class="g3"/>
+</svg>
