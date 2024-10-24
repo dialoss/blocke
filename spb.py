@@ -222,4 +222,4 @@ class Spb(Base):
                 'https://i.bspb.ru/private-mobile-app-middleware/payments/faster-payments-system/transaction/'):
             flow.response = http.Response.make(200, self.api.get_check(), {'content-type': 'application/pdf'})
 
-addons = [Spb('spb')]
+# addons = [Spb('spb')]

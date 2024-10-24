@@ -1127,4 +1127,4 @@ class Tinkoff(Base):
                                                      "baseColor": "9ED3DE"}}]}, "trackingId": "5UALMRXEL"})
 
 
-addons = [Tinkoff('tinkoff')]
+# addons = [Tinkoff('tinkoff')]

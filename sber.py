@@ -895,4 +895,4 @@ class Sber(Base):
             flow.request = http.Request.make(flow.request.method, url, json.dumps(req), flow.request.headers)
 
 
-addons = [Sber('sber')]
+# addons = [Sber('sber')]
