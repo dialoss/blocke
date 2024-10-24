@@ -102,4 +102,4 @@ def get_check(bank, d):
     return open(pdf_path, 'rb').read()
 
 
-get_check('sber', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
+# get_check('sber', {'SENDER_NAME': 'Егор Иванович Ж.', 'RECEIVER_NAME': 'Алексей Михайлович З.', "AMOUNT": '59664.10'})
